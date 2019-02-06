@@ -8,8 +8,6 @@ class GeneratorBlock(nn.Module):
         
         self.activation = activation
         self.upsample = upsample
-        if upsample:
-            self.upsampler = torch.nn.Upsample(scale_factor=2)
             
         self.learnable_shortcut = in_channels != out_channels or upsample
         hidden_channels = out_channels if hidden_channels is None else hidden_channels
@@ -28,7 +26,7 @@ class GeneratorBlock(nn.Module):
         r = self.b1(x)
         r = self.activation(r)
         if self.upsample:
-            r = self.upsampler(r)
+            r = F.interpolate(r, scale_factor=2)
         r = self.conv1(r)
         r = self.b2(r)
         r = self.activation(r)
@@ -38,7 +36,7 @@ class GeneratorBlock(nn.Module):
         x_sc = x
         if self.learnable_shortcut:
             if self.upsample:
-                x_sc = self.upsampler(x)
+                x_sc = F.interpolate(x_sc, scale_factor=2)
             x_sc = self.shortcut(x_sc)
             
         return r + x_sc
@@ -50,8 +48,6 @@ class DiscriminatorBlock(nn.Module):
         
         self.activation = activation
         self.downsample = downsample
-        if downsample:
-            self.downsampler = torch.nn.AvgPool2d(2)
             
         self.learnable_shortcut = in_channels != out_channels or downsample
         hidden_channels = out_channels if hidden_channels is None else hidden_channels
@@ -69,13 +65,14 @@ class DiscriminatorBlock(nn.Module):
         r = self.activation(r)
         r = self.conv2(r)
         if self.downsample:
-            r = self.downsampler(r)
+            r = F.avg_pool2d(r, 2)
         
         # shortcut
         x_sc = x
         if self.learnable_shortcut:
             x_sc = self.shortcut(x_sc)
             if self.downsample:
-                x_sc = self.downsampler(x)
+                x_sc = F.avg_pool2d(x_sc, 2)
             
         return r + x_sc
+
