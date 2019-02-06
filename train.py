@@ -43,6 +43,9 @@ def main():
     train_iter = get_dataset_iter(args.dataset, args.dataset_path, batch_size)
     print("fetched dataset\n")
 
+    print('Allocated:   ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
+    print('Cached:   ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
+
     G = Generator().to(device)
     D = Discriminator().to(device)
     g_optim = torch.optim.Adam(G.parameters(), lr=.0002)
