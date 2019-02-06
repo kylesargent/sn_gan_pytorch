@@ -23,12 +23,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10', help='name of dataset to train with')
     parser.add_argument('--dataset_path', type=str, default='/Users/kylesargent/Desktop/', help='path to dataset')
-    parser.add_argument('--gpu', type=int, default=0, help='index of gpu to be used')
+    # parser.add_argument('--gpu', type=int, default=0, help='index of gpu to be used')
 
     parser.add_argument('--batch_size', type=int, default=32, help='batch size')
     parser.add_argument('--gen_batch_size', type=int, default=64, help='generated samples batch size')
     parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
     parser.add_argument('--epochs', type=int, default=1, help='number of training epochs')
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     args = parser.parse_args()
 
@@ -40,8 +42,8 @@ def main():
     train_iter = get_dataset_iter(args.dataset, args.dataset_path, batch_size)
     print("fetched dataset\n")
 
-    G = Generator()
-    D = Discriminator()
+    G = Generator().to(device)
+    D = Discriminator().to(device)
     g_optim = torch.optim.Adam(G.parameters(), lr=.0002)
     d_optim = torch.optim.Adam(D.parameters(), lr=.0002)
     print("model and optimizers loaded\n")
@@ -49,8 +51,8 @@ def main():
     print("starting training\n")
     for epoch in range(epochs):
         for batch, _labels in tqdm(train_iter):
-            z = Variable(sample_z(gen_batch_size))
-            x_real = Variable(batch)
+            z = Variable(sample_z(gen_batch_size).to(device))
+            x_real = Variable(batch.to(device))
             
             for k in range(dis_iters):
                 # train discriminator
