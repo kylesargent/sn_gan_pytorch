@@ -22,7 +22,7 @@ def sample_z(batch_size):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10', help='name of dataset to train with')
-    parser.add_argument('--dataset_path', type=str, default='/Users/kylesargent/Desktop/', help='path to dataset')
+    parser.add_argument('--dataset_path', type=str, default='~/', help='path to dataset')
     # parser.add_argument('--gpu', type=int, default=0, help='index of gpu to be used')
 
     parser.add_argument('--batch_size', type=int, default=32, help='batch size')
@@ -31,6 +31,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=1, help='number of training epochs')
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print("using device: {}\n".format(device))
 
     args = parser.parse_args()
 
