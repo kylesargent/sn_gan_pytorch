@@ -1,3 +1,6 @@
 [submodule "TTUR"]
 	path = TTUR
 	url = git@github.com:bioinf-jku/TTUR.git
+[submodule "improved-gan"]
+	path = improved-gan
+	url = git@github.com:openai/improved-gan.git

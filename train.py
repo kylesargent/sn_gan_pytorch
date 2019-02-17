@@ -54,6 +54,7 @@ def main():
 
     print("starting training\n")
     for epoch in range(epochs):
+        # training
         for batch, _labels in tqdm(train_iter):
             z = Variable(sample_z(gen_batch_size).to(device))
             x_real = Variable(batch.to(device))
@@ -76,6 +77,9 @@ def main():
                     loss = gen_loss(dis_fake) 
                     loss.backward()
                     g_optim.step()
+
+        # evaluation
+        
 
 if __name__ == '__main__':
     main()
