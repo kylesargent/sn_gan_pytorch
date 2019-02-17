@@ -4,7 +4,7 @@ import torch
 from resnet_blocks import GeneratorBlock, DiscriminatorBlock
 
 
-class Generator(nn.Module):
+class Cifar10Generator(nn.Module):
     
     def __init__(self, z_size=128, bottom_width=4):
         super(Generator, self).__init__()
@@ -31,7 +31,7 @@ class Generator(nn.Module):
         x = torch.tanh(x)
         return x
     
-class Discriminator(nn.Module):
+class Cifar10Discriminator(nn.Module):
     
     def __init__(self):
         super(Discriminator, self).__init__()

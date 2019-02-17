@@ -5,7 +5,7 @@ from torch.distributions.normal import Normal
 import torch.nn.functional as F
 from datasets import get_dataset_iter
 from torch.autograd import Variable
-from cifar10_models import Generator, Discriminator
+from cifar10_models import Cifar10Generator, Cifar10Discriminator
 
 def gen_loss(dis_fake):
     return F.softplus(-dis_fake).mean(0)
@@ -43,11 +43,11 @@ def main():
     train_iter = get_dataset_iter(args.dataset, args.dataset_path, batch_size)
     print("fetched dataset\n")
 
-    print('Allocated:   ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
-    print('Cached:   ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
+    print('Allocated: ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
+    print('Cached: ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
 
-    G = Generator().to(device)
-    D = Discriminator().to(device)
+    G = Cifar10Generator().to(device)
+    D = Cifar10Discriminator().to(device)
     g_optim = torch.optim.Adam(G.parameters(), lr=.0002)
     d_optim = torch.optim.Adam(D.parameters(), lr=.0002)
     print("model and optimizers loaded\n")

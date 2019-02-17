@@ -1,0 +1,3 @@
+[submodule "TTUR"]
+	path = TTUR
+	url = git@github.com:bioinf-jku/TTUR.git
