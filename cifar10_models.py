@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from resnet_blocks import GeneratorBlock, DiscriminatorBlock
+from torch.nn.init import xavier_uniform_
 
 
 class Cifar10Generator(nn.Module):
@@ -17,6 +18,10 @@ class Cifar10Generator(nn.Module):
         self.block_3 = GeneratorBlock(256, 256, upsample=True)
         self.batchnorm = nn.BatchNorm2d(256)
         self.conv = nn.Conv2d(256, 3, 3, padding=1)
+
+        xavier_uniform_(self.linear_1.weight)
+        xavier_uniform_(self.conv.weight)
+
         
     def forward(self, z):
         x = self.linear_1(z)
@@ -36,20 +41,19 @@ class Cifar10Discriminator(nn.Module):
     def __init__(self):
         super(Cifar10Discriminator, self).__init__()
         
-        self.block1 = DiscriminatorBlock(3, 64, downsample=True)
-        self.block2 = DiscriminatorBlock(64, 128, downsample=True)
-        self.block3 = DiscriminatorBlock(128, 256, downsample=True)
-        self.block4 = DiscriminatorBlock(256, 512, downsample=True)
-        self.block5 = DiscriminatorBlock(512, 1024, downsample=False)
+        self.block1 = DiscriminatorBlock(3, 128, downsample=True, optimized=True)
+        self.block2 = DiscriminatorBlock(128, 128, downsample=True)
+        self.block3 = DiscriminatorBlock(128, 128, downsample=False)
+        self.block4 = DiscriminatorBlock(128, 128, downsample=False)
         
-        self.dense = nn.Linear(1024, 1)
+        self.dense = nn.Linear(128, 1, bias=False)
+        xavier_uniform_(self.dense.weight)
         
     def forward(self, x):
         p = self.block1(x)
         p = self.block2(p)
         p = self.block3(p)
         p = self.block4(p)
-        p = self.block5(p)
         
         p = F.relu(p)
         p = torch.sum(p, dim=(2,3))

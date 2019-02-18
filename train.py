@@ -79,8 +79,8 @@ def main():
     logging.info("fetched dataset")    
 
     if str(device) == 'cuda:0':
-        logging.info('Allocated: ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
-        logging.info('Cached: ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
+        logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
+        logging.info('Cached: {}'.format(round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n'))
 
     G = Cifar10Generator().to(device)
     D = Cifar10Discriminator().to(device)
