@@ -55,8 +55,9 @@ def main():
     parser.add_argument('--epochs', type=int, default=2, help='number of training epochs')
     parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
     
-    parser.add_argument('--n_fid_imgs', type=int, default=100, help='number of images to use for evaluating FID, needs to be >= 10000 or FID will underreport')
-    parser.add_argument('--n_is_imgs', type=int, default=10, help='number of images to use for evaluating inception score')
+    parser.add_argument('--n_fid_imgs', type=int, default=2048, 
+        help='number of images to use for evaluating FID, should be >= 10000 or FID will underreport, and must be > 2048')
+    parser.add_argument('--n_is_imgs', type=int, default=512, help='number of images to use for evaluating inception score')
 
     args = parser.parse_args()
     os.makedirs(os.path.dirname(args.eval_imgs_path), exist_ok=True)
@@ -122,7 +123,7 @@ def main():
         # evaluation - is
         n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
         images = []
-        eval_batch_size = 10
+        eval_batch_size = 128
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
             z = Variable(sample_z(eval_batch_size)).to(device)
             images += [G(z)]
