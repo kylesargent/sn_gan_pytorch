@@ -119,6 +119,8 @@ def main():
                         loss = gen_loss(dis_fake) 
                         loss.backward()
                         g_optim.step()
+                        
+        torch.cuda.empty_cache()
 
         # evaluation - is
         n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
@@ -126,12 +128,12 @@ def main():
         eval_batch_size = 128
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
             z = Variable(sample_z(eval_batch_size)).to(device)
-            images += [G(z)]
+            images += [G(z).cpu()]
 
         images = torch.cat(images)
         images = images.transpose(1, 3)
         images = (images + 1) * 128
-        images = images.cpu().data.numpy()
+        images = images.data.numpy()
 
         print("Calculating IS: ")
         inception_score = get_inception_score(list(images))[0]
