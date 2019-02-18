@@ -130,7 +130,7 @@ def main():
         eval_batch_size = 128
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
             with torch.no_grad():
-                z = Variable(sample_z(eval_batch_size)).to(device)
+                z = sample_z(eval_batch_size).to(device)
                 logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
                 images += [G(z).cpu()]
 
@@ -140,7 +140,7 @@ def main():
         images = torch.cat(images)
         images = images.transpose(1, 3)
         images = (images + 1) * 128
-        images = images.data.numpy()
+        images = images.numpy()
 
         print("Calculating IS: ")
         inception_score = get_inception_score(list(images))[0]
