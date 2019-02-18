@@ -42,8 +42,6 @@ def main():
     model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
     results_path = os.path.join(sn_gan_data_path, model_name)
     
-
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10', help='name of dataset to train with')
     parser.add_argument('--eval_imgs_path', type=str, default=os.path.join(results_path, 'eval_imgs/'), help='path to evaluation images')
@@ -55,7 +53,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=2, help='number of training epochs')
     parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
     
-    parser.add_argument('--n_fid_imgs', type=int, default=2048, 
+    parser.add_argument('--n_fid_imgs', type=int, default=2048 + 512, 
         help='number of images to use for evaluating FID, should be >= 10000 or FID will underreport, and must be > 2048')
     parser.add_argument('--n_is_imgs', type=int, default=512, help='number of images to use for evaluating inception score')
 
@@ -120,9 +118,9 @@ def main():
                         loss.backward()
                         g_optim.step()
 
-        logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
+        logging.info('Allocated, epoch {}: {}'.format(epoch, round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
         torch.cuda.empty_cache()
-        logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
+        logging.info('Allocated, epoch {} (cache cleared): {}'.format(epoch, round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
 
         # evaluation - is
         n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
@@ -131,11 +129,7 @@ def main():
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
             with torch.no_grad():
                 z = sample_z(eval_batch_size).to(device)
-                logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
                 images += [G(z).cpu()]
-
-                del z
-                torch.cuda.empty_cache()
 
         images = torch.cat(images)
         images = images.transpose(1, 3)
