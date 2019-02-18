@@ -119,8 +119,10 @@ def main():
                         loss = gen_loss(dis_fake) 
                         loss.backward()
                         g_optim.step()
-                        
+
+        logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
         torch.cuda.empty_cache()
+        logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
 
         # evaluation - is
         n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
@@ -128,6 +130,9 @@ def main():
         eval_batch_size = 128
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
             z = Variable(sample_z(eval_batch_size)).to(device)
+            torch.cuda.empty_cache()
+
+            logging.info('Allocated: {}'.format(round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n'))
             images += [G(z).cpu()]
 
         images = torch.cat(images)
