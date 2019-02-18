@@ -7,6 +7,7 @@ from tqdm import tqdm
 import os
 from os.path import expanduser
 from time import strftime, gmtime
+import logging
 
 import torch
 from torch.distributions.normal import Normal
@@ -15,9 +16,10 @@ from torch.autograd import Variable
 
 from datasets import get_dataset_struct
 from cifar10_models import Cifar10Generator, Cifar10Discriminator
-from evaluation import get_inception_score
+from inception_score import get_inception_score
 
 from TTUR.fid import calculate_fid_given_paths
+
 
 
 def gen_loss(dis_fake):
@@ -39,6 +41,8 @@ def main():
     sn_gan_data_path = os.path.expanduser('~/sn_gan_pytorch_data')
     model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
     results_path = os.path.join(sn_gan_data_path, model_name)
+    
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10', help='name of dataset to train with')
@@ -50,16 +54,19 @@ def main():
     parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
     parser.add_argument('--epochs', type=int, default=2, help='number of training epochs')
     
-    parser.add_argument('--n_fid_imgs', type=int, default=100, help='number of images to use for evaluating FID, needs to be >= 10000 or FID will underreport')
-    parser.add_argument('--n_is_imgs', type=int, default=10, help='number of images to use for evaluating inception score')
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print("using device: {}".format(device))
+    parser.add_argument('--n_fid_imgs', type=int, default=2048, help='number of images to use for evaluating FID, needs to be >= 10000 or FID will underreport')
+    parser.add_argument('--n_is_imgs', type=int, default=2048, help='number of images to use for evaluating inception score')
 
     args = parser.parse_args()
-
-    print(args.eval_imgs_path)
     os.makedirs(os.path.dirname(args.eval_imgs_path), exist_ok=True)
+
+    global logging
+    logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    logging.info("using device: {}".format(device))
+
+    
 
     batch_size = args.batch_size
     gen_batch_size = args.gen_batch_size
@@ -68,60 +75,64 @@ def main():
 
     dataset = get_dataset_struct(args.dataset, sn_gan_data_path, batch_size)
     train_iter = dataset['train_iter']
-    print("fetched dataset")    
+    logging.info("fetched dataset")    
 
     if str(device) == 'cuda:0':
-        print('Allocated: ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
-        print('Cached: ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
+        logging.info('Allocated: ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
+        logging.info('Cached: ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
 
     G = Cifar10Generator().to(device)
     D = Cifar10Discriminator().to(device)
     g_optim = torch.optim.Adam(G.parameters(), lr=.0002)
     d_optim = torch.optim.Adam(D.parameters(), lr=.0002)
-    print("model and optimizers loaded")
+    logging.info("model and optimizers loaded")
 
-    print("starting training")
+    logging.info("starting training")
     for epoch in range(epochs):
-
         # training
-        print("training epoch {}".format(epoch))
-        """
-        for batch, _labels in tqdm(train_iter):
-            z = Variable(sample_z(gen_batch_size).to(device))
-            x_real = Variable(batch.to(device))
-            
-            for k in range(dis_iters):
-                # train discriminator
-                x_fake = G(z)
-                dis_fake = D(x_fake.detach())
-                dis_real = D(x_real)
 
-                loss = dis_loss(dis_fake, dis_real)
-                loss.backward()
-                d_optim.step()
+        if epoch != 0:
+            # baseline evaluation of a random model
+            logging.info("training epoch {}".format(epoch))
 
-                # train generator
-                if k==0:
-                    g_optim.zero_grad()
-                    dis_fake = D(x_fake)
+            for batch, _labels in tqdm(train_iter):
+                z = Variable(sample_z(gen_batch_size).to(device))
+                x_real = Variable(batch.to(device))
+                
+                for k in range(dis_iters):
+                    # train discriminator
+                    x_fake = G(z)
+                    dis_fake = D(x_fake.detach())
+                    dis_real = D(x_real)
 
-                    loss = gen_loss(dis_fake) 
+                    loss = dis_loss(dis_fake, dis_real)
                     loss.backward()
-                    g_optim.step()
-        """
+                    d_optim.step()
 
-        # evaluation
+                    # train generator
+                    if k==0:
+                        g_optim.zero_grad()
+                        dis_fake = D(x_fake)
+
+                        loss = gen_loss(dis_fake) 
+                        loss.backward()
+                        g_optim.step()
+
+        # evaluation - is
         n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
-        print("evaluating inception score (IS) at epoch {}".format(epoch))
         images = []
-        for _ in tqdm(range(math.ceil(n_imgs / 10.))):
-            z = Variable(sample_z(10)).to(device)
+        eval_batch_size = 128
+        for _ in tqdm(range(math.ceil(n_imgs / float(eval_batch_size)))):
+            z = Variable(sample_z(eval_batch_size)).to(device)
             images += [G(z)]
 
         images = torch.cat(images)
         images = images.transpose(1, 3)
         images = (images + 1) * 128
         images = images.data.numpy()
+
+        inception_score = get_inception_score(list(images))[0]
+        logging.info("\nInception Score at epoch {}: {}".format(epoch, inception_score))
 
         images_dir = os.path.join(args.eval_imgs_path, 'epoch_{}_imgs/'.format(epoch))
         os.makedirs(os.path.dirname(images_dir), exist_ok=True)
@@ -130,10 +141,9 @@ def main():
             im = Image.fromarray(image, 'RGB')
             im.save(os.path.join(images_dir, '{}.jpg'.format(i)))
 
-        # inception_score = get_inception_score(pth)
-
-    print("evaluating frechet inception distance (FID) at final epoch")
-    fid = calculate_fid_given_paths((images_dir, dataset['fid_stats_dir']), sn_gan_data_path)
+        # evaluation - fid
+        fid = calculate_fid_given_paths((images_dir, dataset['fid_stats_dir']), sn_gan_data_path)
+        logging.info("\nFID at epoch {}: {}".format(epoch, fid))
 
 if __name__ == '__main__':
     main()
