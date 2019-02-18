@@ -1,60 +1,91 @@
+import math
+import numpy as np
+from PIL import Image
+
 import argparse
 from tqdm import tqdm
+import os
+from os.path import expanduser
+from time import strftime, gmtime
+
 import torch
 from torch.distributions.normal import Normal
 import torch.nn.functional as F
-from datasets import get_dataset_iter
 from torch.autograd import Variable
+
+from datasets import get_dataset_struct
 from cifar10_models import Cifar10Generator, Cifar10Discriminator
+from evaluation import get_inception_score
+
+from TTUR.fid import calculate_fid_given_paths
+
 
 def gen_loss(dis_fake):
     return F.softplus(-dis_fake).mean(0)
     
+
 def dis_loss(dis_fake, dis_real):
     L1 = F.softplus(dis_fake).mean(0)
     L2 = F.softplus(-dis_real).mean(0)    
     return L1 + L2
 
+
 def sample_z(batch_size):
     n = Normal(torch.tensor([0.0]), torch.tensor([1.0]))
     return n.sample((batch_size, 128)).squeeze(2)
 
+
 def main():
+    sn_gan_data_path = os.path.expanduser('~/sn_gan_pytorch_data')
+    model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
+    results_path = os.path.join(sn_gan_data_path, model_name)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10', help='name of dataset to train with')
-    parser.add_argument('--dataset_path', type=str, default='~/', help='path to dataset')
+    parser.add_argument('--eval_imgs_path', type=str, default=os.path.join(results_path, 'eval_imgs/'), help='path to evaluation images')
     # parser.add_argument('--gpu', type=int, default=0, help='index of gpu to be used')
 
     parser.add_argument('--batch_size', type=int, default=32, help='batch size')
     parser.add_argument('--gen_batch_size', type=int, default=64, help='generated samples batch size')
     parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
-    parser.add_argument('--epochs', type=int, default=1, help='number of training epochs')
+    parser.add_argument('--epochs', type=int, default=2, help='number of training epochs')
+    
+    parser.add_argument('--n_fid_imgs', type=int, default=100, help='number of images to use for evaluating FID, needs to be >= 10000 or FID will underreport')
+    parser.add_argument('--n_is_imgs', type=int, default=10, help='number of images to use for evaluating inception score')
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print("using device: {}\n".format(device))
+    print("using device: {}".format(device))
 
     args = parser.parse_args()
+
+    print(args.eval_imgs_path)
+    os.makedirs(os.path.dirname(args.eval_imgs_path), exist_ok=True)
 
     batch_size = args.batch_size
     gen_batch_size = args.gen_batch_size
     dis_iters = args.dis_iters
     epochs = args.epochs
 
-    train_iter = get_dataset_iter(args.dataset, args.dataset_path, batch_size)
-    print("fetched dataset\n")
+    dataset = get_dataset_struct(args.dataset, sn_gan_data_path, batch_size)
+    train_iter = dataset['train_iter']
+    print("fetched dataset")    
 
-    print('Allocated: ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
-    print('Cached: ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
+    if str(device) == 'cuda:0':
+        print('Allocated: ', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB\n')
+        print('Cached: ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB\n')
 
     G = Cifar10Generator().to(device)
     D = Cifar10Discriminator().to(device)
     g_optim = torch.optim.Adam(G.parameters(), lr=.0002)
     d_optim = torch.optim.Adam(D.parameters(), lr=.0002)
-    print("model and optimizers loaded\n")
+    print("model and optimizers loaded")
 
-    print("starting training\n")
+    print("starting training")
     for epoch in range(epochs):
+
         # training
+        print("training epoch {}".format(epoch))
+        """
         for batch, _labels in tqdm(train_iter):
             z = Variable(sample_z(gen_batch_size).to(device))
             x_real = Variable(batch.to(device))
@@ -77,9 +108,32 @@ def main():
                     loss = gen_loss(dis_fake) 
                     loss.backward()
                     g_optim.step()
+        """
 
         # evaluation
-        
+        n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
+        print("evaluating inception score (IS) at epoch {}".format(epoch))
+        images = []
+        for _ in tqdm(range(math.ceil(n_imgs / 10.))):
+            z = Variable(sample_z(10)).to(device)
+            images += [G(z)]
+
+        images = torch.cat(images)
+        images = images.transpose(1, 3)
+        images = (images + 1) * 128
+        images = images.data.numpy()
+
+        images_dir = os.path.join(args.eval_imgs_path, 'epoch_{}_imgs/'.format(epoch))
+        os.makedirs(os.path.dirname(images_dir), exist_ok=True)
+
+        for i, image in enumerate(images):
+            im = Image.fromarray(image, 'RGB')
+            im.save(os.path.join(images_dir, '{}.jpg'.format(i)))
+
+        # inception_score = get_inception_score(pth)
+
+    print("evaluating frechet inception distance (FID) at final epoch")
+    fid = calculate_fid_given_paths((images_dir, dataset['fid_stats_dir']), sn_gan_data_path)
 
 if __name__ == '__main__':
     main()

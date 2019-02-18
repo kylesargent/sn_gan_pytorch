@@ -7,7 +7,7 @@ from resnet_blocks import GeneratorBlock, DiscriminatorBlock
 class Cifar10Generator(nn.Module):
     
     def __init__(self, z_size=128, bottom_width=4):
-        super(Generator, self).__init__()
+        super(Cifar10Generator, self).__init__()
         
         self.bottom_width = bottom_width
         
@@ -34,7 +34,7 @@ class Cifar10Generator(nn.Module):
 class Cifar10Discriminator(nn.Module):
     
     def __init__(self):
-        super(Discriminator, self).__init__()
+        super(Cifar10Discriminator, self).__init__()
         
         self.block1 = DiscriminatorBlock(3, 64, downsample=True)
         self.block2 = DiscriminatorBlock(64, 128, downsample=True)
