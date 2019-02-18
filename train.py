@@ -53,9 +53,10 @@ def main():
     parser.add_argument('--gen_batch_size', type=int, default=64, help='generated samples batch size')
     parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
     parser.add_argument('--epochs', type=int, default=2, help='number of training epochs')
+    parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
     
-    parser.add_argument('--n_fid_imgs', type=int, default=2048, help='number of images to use for evaluating FID, needs to be >= 10000 or FID will underreport')
-    parser.add_argument('--n_is_imgs', type=int, default=2048, help='number of images to use for evaluating inception score')
+    parser.add_argument('--n_fid_imgs', type=int, default=100, help='number of images to use for evaluating FID, needs to be >= 10000 or FID will underreport')
+    parser.add_argument('--n_is_imgs', type=int, default=10, help='number of images to use for evaluating inception score')
 
     args = parser.parse_args()
     os.makedirs(os.path.dirname(args.eval_imgs_path), exist_ok=True)
@@ -66,14 +67,13 @@ def main():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     logging.info("using device: {}".format(device))
 
-    
-
     batch_size = args.batch_size
     gen_batch_size = args.gen_batch_size
     dis_iters = args.dis_iters
     epochs = args.epochs
+    subsample = args.subsample
 
-    dataset = get_dataset_struct(args.dataset, sn_gan_data_path, batch_size)
+    dataset = get_dataset_struct(args.dataset, sn_gan_data_path, batch_size, subsample)
     train_iter = dataset['train_iter']
     logging.info("fetched dataset")    
 
@@ -93,6 +93,7 @@ def main():
 
         if epoch != 0:
             # baseline evaluation of a random model
+
             logging.info("training epoch {}".format(epoch))
 
             for batch, _labels in tqdm(train_iter):
@@ -121,8 +122,8 @@ def main():
         # evaluation - is
         n_imgs = args.n_fid_imgs if epoch == epochs - 1 else args.n_is_imgs
         images = []
-        eval_batch_size = 128
-        for _ in tqdm(range(math.ceil(n_imgs / float(eval_batch_size)))):
+        eval_batch_size = 10
+        for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
             z = Variable(sample_z(eval_batch_size)).to(device)
             images += [G(z)]
 
@@ -131,6 +132,7 @@ def main():
         images = (images + 1) * 128
         images = images.data.numpy()
 
+        print("Calculating IS: ")
         inception_score = get_inception_score(list(images))[0]
         logging.info("\nInception Score at epoch {}: {}".format(epoch, inception_score))
 
@@ -142,8 +144,9 @@ def main():
             im.save(os.path.join(images_dir, '{}.jpg'.format(i)))
 
         # evaluation - fid
+        print("Calculating FID: ")
         fid = calculate_fid_given_paths((images_dir, dataset['fid_stats_dir']), sn_gan_data_path)
         logging.info("\nFID at epoch {}: {}".format(epoch, fid))
-
+        
 if __name__ == '__main__':
     main()
