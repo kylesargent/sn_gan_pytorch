@@ -131,7 +131,7 @@ def main():
         images = torch.cat(images)
         images = images.transpose(1, 3)
         images = (images + 1) * 128
-        images = images.data.numpy()
+        images = images.cpu().data.numpy()
 
         print("Calculating IS: ")
         inception_score = get_inception_score(list(images))[0]
