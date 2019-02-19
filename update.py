@@ -17,11 +17,11 @@ from TTUR.fid import calculate_fid_given_paths
 from inception_score import get_inception_score
 
 
-def gen_loss(dis_fake):
+def get_gen_loss(dis_fake):
     return F.softplus(-dis_fake).mean(0)
     
 
-def dis_loss(dis_fake, dis_real):
+def get_dis_loss(dis_fake, dis_real):
     L1 = F.softplus(dis_fake).mean(0)
     L2 = F.softplus(-dis_real).mean(0)    
     return L1 + L2
@@ -55,7 +55,7 @@ def update(trainingwrapper):
     logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print("Using device {}\n".format(str(device)))
+    logging.info("Using device {}\n".format(str(device)))
 
     d.to(device)
     g.to(device)
@@ -66,15 +66,17 @@ def update(trainingwrapper):
 
     eval_imgs_path = os.path.join(results_path, 'eval_imgs/')
 
-    print("Starting training\n")
+    logging.info("Starting training\n")
     for epoch in range(epochs + 1):
         # training
         
-        print("Beginning training epoch {}\n".format(epoch))
+        logging.info("Beginning training epoch {}\n".format(epoch))
         if epoch != 0 :
             # baseline evaluation of a random model
+            gen_losses = []
+            dis_losses = []
 
-            print("Training on iter of length {}".format(len(train_iter)))
+            # logging.info("Training on iter of length {}".format(len(train_iter)))
             for batch, _labels in tqdm(train_iter):
                 z = Variable(sample_z(noise_batch_size).to(device))
                 x_real = Variable(batch.to(device))
@@ -85,8 +87,8 @@ def update(trainingwrapper):
                     dis_fake = d(x_fake.detach())
                     dis_real = d(x_real)
 
-                    loss = dis_loss(dis_fake, dis_real)
-                    loss.backward()
+                    dis_loss = get_dis_loss(dis_fake, dis_real)
+                    dis_loss.backward()
                     d_optim.step()
 
                     # train generator
@@ -94,9 +96,15 @@ def update(trainingwrapper):
                         g_optim.zero_grad()
                         dis_fake = d(x_fake)
 
-                        loss = gen_loss(dis_fake) 
-                        loss.backward()
+                        gen_loss = get_gen_loss(dis_fake) 
+                        gen_loss.backward()
                         g_optim.step()
+
+                gen_losses += [gen_loss.data.numpy()]
+                dis_losses += [dis_loss.data.numpy()]
+
+            logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
+            logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
 
             checkpoint_path = os.path.join(results_path, 'checkpoints/checkpoint_{}'.format(epoch))
             os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
@@ -117,7 +125,7 @@ def update(trainingwrapper):
         images = images.numpy()
 
         inception_score = get_inception_score(list(images))[0]
-        print("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
+        logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
 
         images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
         os.makedirs(os.path.dirname(images_path), exist_ok=True)
@@ -128,4 +136,4 @@ def update(trainingwrapper):
 
         # evaluation - fid
         fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
-        print("FID at epoch {}: {}\n".format(epoch, fid))
+        logging.info("FID at epoch {}: {}\n".format(epoch, fid))
