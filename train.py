@@ -1,6 +1,7 @@
 import argparse
 import os
 from os.path import expanduser
+import logging
 from time import gmtime, strftime
 
 from cifar10_models import Cifar10Generator, Cifar10Discriminator
@@ -35,11 +36,15 @@ def main():
     model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
     results_path = os.path.join(args.sn_gan_data_path, model_name)
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
+    global logging
+    logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
 
     config = {
         'results_path': results_path,
         **vars(args)
     }
+
+    logging.info("Building models")
 
     if args.pretrained_path is None:
         d = Cifar10Discriminator()
@@ -53,6 +58,8 @@ def main():
         trainingwrapper.config['results_path'] = results_path
         if args.override_hyperparameters:
             trainingwrapper.config = config
+
+    logging.info("Build training wrapper")
 
     update(trainingwrapper)
         
