@@ -1,6 +1,7 @@
-import os
-from tqdm import tqdm
 import logging
+import os
+import sys
+from tqdm import tqdm
 
 from PIL import Image
 import math
@@ -41,7 +42,6 @@ def update(trainingwrapper):
     dataset = config['dataset']
     sn_gan_data_path = config['sn_gan_data_path']
     results_path = config['results_path']
-    eval_imgs_path = config['eval_imgs_path']
 
     data_batch_size = config['data_batch_size']
     noise_batch_size = config['noise_batch_size']
@@ -55,24 +55,26 @@ def update(trainingwrapper):
     logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    logging.info("Using device {}".format(str(device)))
+    print("Using device {}\n".format(str(device)))
 
     d.to(device)
     g.to(device)
 
     dataset = get_dataset_struct(dataset, sn_gan_data_path, data_batch_size, subsample)
     train_iter = dataset['train_iter']
-    fid_stats_dir = dataset['fid_stats_dir']
+    fid_stats_path = dataset['fid_stats_path']
 
-    logging.info("Starting training")
+    eval_imgs_path = os.path.join(results_path, 'eval_imgs/')
+
+    print("Starting training\n")
     for epoch in range(epochs + 1):
         # training
         
-        if epoch != 0:
+        print("Beginning training epoch {}\n".format(epoch))
+        if epoch != 0 :
             # baseline evaluation of a random model
 
-            logging.info("Beginning training epoch {}".format(epoch))
-
+            print("Training on iter of length {}".format(len(train_iter)))
             for batch, _labels in tqdm(train_iter):
                 z = Variable(sample_z(noise_batch_size).to(device))
                 x_real = Variable(batch.to(device))
@@ -101,7 +103,7 @@ def update(trainingwrapper):
             trainingwrapper.save(checkpoint_path)
 
         # evaluation - is
-        n_imgs = n_fid_imgs if epoch == epochs - 1 else n_is_imgs
+        n_imgs = n_fid_imgs if epoch == epochs else n_is_imgs
         images = []
         eval_batch_size = 10
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
@@ -115,15 +117,15 @@ def update(trainingwrapper):
         images = images.numpy()
 
         inception_score = get_inception_score(list(images))[0]
-        logging.info("\nInception Score at epoch {}: {}".format(epoch, inception_score))
+        print("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
 
-        images_dir = os.path.join(eval_imgs_path, 'epoch_{}/imgs/'.format(epoch))
-        os.makedirs(os.path.dirname(images_dir), exist_ok=True)
+        images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
+        os.makedirs(os.path.dirname(images_path), exist_ok=True)
 
         for i, image in enumerate(images):
             im = Image.fromarray(image, 'RGB')
-            im.save(os.path.join(images_dir, '{}.jpg'.format(i)))
+            im.save(os.path.join(images_path, '{}.jpg'.format(i)))
 
         # evaluation - fid
-        fid = calculate_fid_given_paths((images_dir, fid_stats_dir), sn_gan_data_path)
-        logging.info("\nFID at epoch {}: {}".format(epoch, fid))
+        fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
+        print("FID at epoch {}: {}\n".format(epoch, fid))
