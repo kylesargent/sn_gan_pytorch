@@ -29,9 +29,17 @@ def main():
     # Evaluation Hyperparameters
     parser.add_argument('--n_fid_imgs', type=int, default=10000, help='number of images to use for FID, should be >= 10000, must be > 2048')
     parser.add_argument('--n_is_imgs', type=int, default=5000, help='number of images to use for evaluating inception score')
+
+    parser.add_argument('--dry_run', action='store_true', help='debug on a small subset of training data, and limit evaluation')
+
     args = parser.parse_args()
     if args.pretrained_path is None and args.override_hyperparameters:
         parser.error('--override_hyperparameters can only be set when loading a previous model with --pretrained-path')
+    if args.dry_run:
+        args.n_fid_imgs = 100
+        args.n_is_imgs = 10
+        args.subsample = .001
+        args.epochs = 2
 
     model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
     results_path = os.path.join(args.sn_gan_data_path, model_name)

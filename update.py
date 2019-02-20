@@ -72,36 +72,43 @@ def update(trainingwrapper):
         # training
         
         logging.info("Beginning training epoch {}\n".format(epoch))
-            # baseline evaluation of a random model
         gen_losses = []
         dis_losses = []
 
         # logging.info("Training on iter of length {}".format(len(train_iter)))
-        for batch, _labels in tqdm(train_iter):
+        for i, (batch, _labels) in tqdm(enumerate(train_iter)):
             z = Variable(sample_z(noise_batch_size).to(device))
-            x_real = Variable(batch.to(device))
-            
-            for k in range(dis_iters):
-                # train discriminator
+
+            # train discriminator
+            d_optim.zero_grad()
+
+            x_real = batch.to(device)
+            dis_real = d(x_real)
+            z = sample_z(data_batch_size).to(device)
+            x_fake = g(z).detach()
+
+            dis_fake = d(x_fake)
+            dis_loss = get_dis_loss(dis_fake, dis_real)
+            dis_loss.backward()
+            d_optim.step()
+
+            # train generator
+            if i % dis_iters == 0: 
+                for p in d.parameters():
+                    p.requires_grad = False
+
+                g_optim.zero_grad()
+                z = sample_z(noise_batch_size).to(device)
                 x_fake = g(z)
-                dis_fake = d(x_fake.detach())
-                dis_real = d(x_real)
+                dis_fake = d(x_fake)
+                gen_loss = get_gen_loss(dis_fake)
+                gen_loss.backward()
 
-                dis_loss = get_dis_loss(dis_fake, dis_real)
-                dis_loss.backward()
-                d_optim.step()
+                for p in d.parameters():
+                    p.requires_grad = True
 
-                # train generator
-                if k==0:
-                    g_optim.zero_grad()
-                    dis_fake = d(x_fake)
-
-                    gen_loss = get_gen_loss(dis_fake) 
-                    gen_loss.backward()
-                    g_optim.step()
-
-            gen_losses += [gen_loss.cpu().data.numpy()]
-            dis_losses += [dis_loss.cpu().data.numpy()]
+                gen_losses += [gen_loss.cpu().data.numpy()]
+                dis_losses += [dis_loss.cpu().data.numpy()]
 
         logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
         logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
