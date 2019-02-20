@@ -85,6 +85,11 @@ def update(trainingwrapper):
             z = Variable(sample_z(noise_batch_size).to(device))
 
             # train discriminator
+            
+            # clamp parameters to a cube
+            for p in d.parameters():
+                p.data.clamp_(-.05, .05)
+
             d_optim.zero_grad()
 
             x_real = batch.to(device)
@@ -122,30 +127,31 @@ def update(trainingwrapper):
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
         trainingwrapper.save(checkpoint_path)
 
-        # evaluation - is
-        n_imgs = n_fid_imgs if epoch == epochs - 1 else n_is_imgs
-        images = []
-        eval_batch_size = 10
-        for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
-            with torch.no_grad():
-                z = sample_z(eval_batch_size).to(device)
-                images += [g(z).cpu()]
+        if epoch == epochs - 1:
+            # evaluation - is
+            n_imgs = n_fid_imgs if epoch == epochs - 1 else n_is_imgs
+            images = []
+            eval_batch_size = 10
+            for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
+                with torch.no_grad():
+                    z = sample_z(eval_batch_size).to(device)
+                    images += [g(z).cpu()]
 
-        images = torch.cat(images)
-        images = images.transpose(1, 3)
-        images = (images + 1) * 128
-        images = images.numpy()
+            images = torch.cat(images)
+            images = images.transpose(1, 3)
+            images = (images + 1) * 128
+            images = images.numpy()
 
-        inception_score = get_inception_score(list(images))[0]
-        logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
+            inception_score = get_inception_score(list(images))[0]
+            logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
 
-        images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
-        os.makedirs(os.path.dirname(images_path), exist_ok=True)
+            images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
+            os.makedirs(os.path.dirname(images_path), exist_ok=True)
 
-        for i, image in enumerate(images):
-            im = Image.fromarray(image, 'RGB')
-            im.save(os.path.join(images_path, '{}.jpg'.format(i)))
+            for i, image in enumerate(images):
+                im = Image.fromarray(image, 'RGB')
+                im.save(os.path.join(images_path, '{}.jpg'.format(i)))
 
-        # evaluation - fid
-        fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
-        logging.info("FID at epoch {}: {}\n".format(epoch, fid))
+            # evaluation - fid
+            fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
+            logging.info("FID at epoch {}: {}\n".format(epoch, fid))
