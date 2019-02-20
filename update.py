@@ -128,7 +128,7 @@ def update(trainingwrapper):
         trainingwrapper.save(checkpoint_path)
 
         if epoch == epochs - 1:
-            # evaluation - is
+            
             n_imgs = n_fid_imgs if epoch == epochs - 1 else n_is_imgs
             images = []
             eval_batch_size = 10
@@ -142,15 +142,16 @@ def update(trainingwrapper):
             images = (images + 1) * 128
             images = images.numpy()
 
-            inception_score = get_inception_score(list(images))[0]
-            logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
-
             images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
             os.makedirs(os.path.dirname(images_path), exist_ok=True)
 
             for i, image in enumerate(images):
                 im = Image.fromarray(image, 'RGB')
                 im.save(os.path.join(images_path, '{}.jpg'.format(i)))
+
+            # evaluation - is
+            inception_score = get_inception_score(list(images))[0]
+            logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
 
             # evaluation - fid
             fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
