@@ -85,10 +85,10 @@ def update(trainingwrapper):
             z = Variable(sample_z(noise_batch_size).to(device))
 
             # train discriminator
-            
+
             # clamp parameters to a cube
             for p in d.parameters():
-                p.data.clamp_(-.05, .05)
+                p.data.clamp_(-.01, .01)
 
             d_optim.zero_grad()
 
