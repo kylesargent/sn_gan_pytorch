@@ -39,7 +39,6 @@ def get_cifar10_iter(dataset_path, batch_size, subsample):
 		trainloader = torch.utils.data.DataLoader(
 			trainset, 
 			batch_size=batch_size,
-			shuffle=False, 
 			num_workers=1,
 			shuffle=True
 		)
