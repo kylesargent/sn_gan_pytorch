@@ -20,8 +20,8 @@ def main():
     parser.add_argument('--override_hyperparameters', type=bool, default=False, help='train an old model with new hyperparameters')
 
     # Training Hyperparameters
-    parser.add_argument('--data_batch_size', type=int, default=32, help='batch size of samples from real data')
-    parser.add_argument('--noise_batch_size', type=int, default=64, help='batch size of samples of random noise')
+    parser.add_argument('--data_batch_size', type=int, default=64, help='batch size of samples from real data')
+    parser.add_argument('--noise_batch_size', type=int, default=128, help='batch size of samples of random noise')
     parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
     parser.add_argument('--epochs', type=int, default=10, help='number of training epochs')
     parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
@@ -49,8 +49,8 @@ def main():
     if args.pretrained_path is None:
         d = Cifar10Discriminator()
         g = Cifar10Generator()
-        d_optim = torch.optim.Adam(d.parameters(), lr=.0002)
-        g_optim = torch.optim.Adam(g.parameters(), lr=.0002)
+        d_optim = torch.optim.Adam(d.parameters(), lr=.0002, betas=(0.0, 0.9))
+        g_optim = torch.optim.Adam(g.parameters(), lr=.0002, betas=(0.0, 0.9))
         trainingwrapper = TrainingWrapper(d, g, d_optim, g_optim, config)
     else:
         trainingwrapper = TrainingWrapper.load(args.pretrained_path)

@@ -36,16 +36,22 @@ def get_cifar10_iter(dataset_path, batch_size, subsample):
 	)
 
 	if subsample == None:
-		sampler = None
+		trainloader = torch.utils.data.DataLoader(
+			trainset, 
+			batch_size=batch_size,
+			shuffle=False, 
+			num_workers=1,
+			shuffle=True
+		)
 	else:
 		indices = np.random.choice(range(len(trainset)), size=int(len(trainset) * subsample))
 		sampler = torch.utils.data.sampler.SubsetRandomSampler(indices)
-
-	trainloader = torch.utils.data.DataLoader(
-		trainset, 
-		batch_size=batch_size,
-		shuffle=False, 
-		num_workers=1,
-		sampler=sampler
-	)
+		trainloader = torch.utils.data.DataLoader(
+			trainset, 
+			batch_size=batch_size,
+			shuffle=False, 
+			num_workers=1,
+			sampler=sampler
+		)
+	
 	return trainloader

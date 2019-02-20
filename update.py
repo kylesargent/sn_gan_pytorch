@@ -68,51 +68,50 @@ def update(trainingwrapper):
     eval_imgs_path = os.path.join(results_path, 'eval_imgs/')
 
     logging.info("Starting training\n")
-    for epoch in range(epochs + 1):
+    for epoch in range(epochs):
         # training
         
         logging.info("Beginning training epoch {}\n".format(epoch))
-        if epoch != 0 :
             # baseline evaluation of a random model
-            gen_losses = []
-            dis_losses = []
+        gen_losses = []
+        dis_losses = []
 
-            # logging.info("Training on iter of length {}".format(len(train_iter)))
-            for batch, _labels in tqdm(train_iter):
-                z = Variable(sample_z(noise_batch_size).to(device))
-                x_real = Variable(batch.to(device))
-                
-                for k in range(dis_iters):
-                    # train discriminator
-                    x_fake = g(z)
-                    dis_fake = d(x_fake.detach())
-                    dis_real = d(x_real)
+        # logging.info("Training on iter of length {}".format(len(train_iter)))
+        for batch, _labels in tqdm(train_iter):
+            z = Variable(sample_z(noise_batch_size).to(device))
+            x_real = Variable(batch.to(device))
+            
+            for k in range(dis_iters):
+                # train discriminator
+                x_fake = g(z)
+                dis_fake = d(x_fake.detach())
+                dis_real = d(x_real)
 
-                    dis_loss = get_dis_loss(dis_fake, dis_real)
-                    dis_loss.backward()
-                    d_optim.step()
+                dis_loss = get_dis_loss(dis_fake, dis_real)
+                dis_loss.backward()
+                d_optim.step()
 
-                    # train generator
-                    if k==0:
-                        g_optim.zero_grad()
-                        dis_fake = d(x_fake)
+                # train generator
+                if k==0:
+                    g_optim.zero_grad()
+                    dis_fake = d(x_fake)
 
-                        gen_loss = get_gen_loss(dis_fake) 
-                        gen_loss.backward()
-                        g_optim.step()
+                    gen_loss = get_gen_loss(dis_fake) 
+                    gen_loss.backward()
+                    g_optim.step()
 
-                gen_losses += [gen_loss.cpu().data.numpy()]
-                dis_losses += [dis_loss.cpu().data.numpy()]
+            gen_losses += [gen_loss.cpu().data.numpy()]
+            dis_losses += [dis_loss.cpu().data.numpy()]
 
-            logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
-            logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
+        logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
+        logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
 
-            checkpoint_path = os.path.join(results_path, 'checkpoints/checkpoint_{}'.format(epoch))
-            os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-            trainingwrapper.save(checkpoint_path)
+        checkpoint_path = os.path.join(results_path, 'checkpoints/checkpoint_{}'.format(epoch))
+        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+        trainingwrapper.save(checkpoint_path)
 
         # evaluation - is
-        n_imgs = n_fid_imgs if epoch == epochs else n_is_imgs
+        n_imgs = n_fid_imgs if epoch == epochs - 1 else n_is_imgs
         images = []
         eval_batch_size = 10
         for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
