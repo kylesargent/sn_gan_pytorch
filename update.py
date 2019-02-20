@@ -9,6 +9,7 @@ import math
 import numpy as np
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from torch.autograd import Variable
@@ -57,6 +58,10 @@ def update(trainingwrapper):
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     logging.info("Using device {}\n".format(str(device)))
+
+    if torch.cuda.device_count() > 1:
+        d = nn.DataParallel(d)
+        g = nn.DataParallel(g)
 
     d.to(device)
     g.to(device)
