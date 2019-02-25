@@ -23,7 +23,7 @@ def get_gen_loss(dis_fake):
     return F.softplus(-dis_fake).mean(0)
 
 def get_gen_loss_hinge(dis_fake):
-    return -F.mean(dis_fake)
+    return -dis_fake.mean(0)
 
 
 def get_dis_loss(dis_fake, dis_real):
