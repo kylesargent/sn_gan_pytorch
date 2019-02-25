@@ -55,8 +55,8 @@ class Cifar10Discriminator(nn.Module):
         p = self.block2(p)
         p = self.block3(p)
         p = self.block4(p)
-        
         p = F.relu(p)
+        
         p = torch.sum(p, dim=(2,3))
         
         p = self.dense(p)

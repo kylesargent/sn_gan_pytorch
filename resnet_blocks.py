@@ -59,7 +59,11 @@ class DiscriminatorBlock(nn.Module):
         self.optimized = optimized
             
         self.learnable_shortcut = (in_channels != out_channels) or downsample
-        hidden_channels = out_channels if hidden_channels is None else hidden_channels
+        if hidden_channels is None:
+            if optimized:
+                hidden_channels = out_channels
+            else:
+                hidden_channels = in_channels
         
         self.conv1 = spectral_norm(nn.Conv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding))
         self.conv2 = spectral_norm(nn.Conv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding))
