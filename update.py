@@ -80,16 +80,10 @@ def update(trainingwrapper):
         gen_losses = []
         dis_losses = []
 
-        # logging.info("Training on iter of length {}".format(len(train_iter)))
         for i, (batch, _labels) in tqdm(enumerate(train_iter)):
             z = Variable(sample_z(noise_batch_size).to(device))
 
             # train discriminator
-
-            # clamp parameters to a cube
-            for p in d.parameters():
-                p.data.clamp_(-.01, .01)
-
             d_optim.zero_grad()
 
             x_real = batch.to(device)

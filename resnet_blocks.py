@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
 
+from spectral_layers import SNConv2d
+
 
 class GeneratorBlock(nn.Module):
     
@@ -57,14 +59,14 @@ class DiscriminatorBlock(nn.Module):
         self.downsample = downsample
         self.optimized = optimized
             
-        self.learnable_shortcut = in_channels != out_channels or downsample
+        self.learnable_shortcut = (in_channels != out_channels) or downsample
         hidden_channels = out_channels if hidden_channels is None else hidden_channels
         
-        self.conv1 = nn.Conv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
-        self.conv2 = nn.Conv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
+        self.conv1 = SNConv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
+        self.conv2 = SNConv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
         
         if self.learnable_shortcut:
-            self.shortcut = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+            self.shortcut = SNConv2d(in_channels, out_channels, kernel_size=1)
             xavier_uniform_(self.shortcut.weight)
 
         xavier_uniform_(self.conv1.weight, gain=1.41)

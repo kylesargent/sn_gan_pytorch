@@ -4,6 +4,7 @@ import torch
 from resnet_blocks import GeneratorBlock, DiscriminatorBlock
 from torch.nn.init import xavier_uniform_
 
+from spectral_layers import SNLinear
 
 class Cifar10Generator(nn.Module):
     
@@ -46,7 +47,7 @@ class Cifar10Discriminator(nn.Module):
         self.block3 = DiscriminatorBlock(128, 128, downsample=False)
         self.block4 = DiscriminatorBlock(128, 128, downsample=False)
         
-        self.dense = nn.Linear(128, 1, bias=False)
+        self.dense = SNLinear(128, 1, bias=False)
         xavier_uniform_(self.dense.weight)
         
     def forward(self, x):
