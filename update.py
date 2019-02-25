@@ -21,11 +21,19 @@ from inception_score import get_inception_score
 
 def get_gen_loss(dis_fake):
     return F.softplus(-dis_fake).mean(0)
-    
+
+def get_gen_loss_hinge(dis_fake):
+    return -F.mean(dis_fake)
+
 
 def get_dis_loss(dis_fake, dis_real):
     L1 = F.softplus(dis_fake).mean(0)
     L2 = F.softplus(-dis_real).mean(0)    
+    return L1 + L2
+
+def get_dis_loss_hinge(dis_fake, dis_real):
+    L1 = F.relu(1. + dis_fake).mean(0)
+    L2 = F.relu(1. - dis_real).mean(0)
     return L1 + L2
 
 
@@ -92,7 +100,7 @@ def update(trainingwrapper):
             x_fake = g(z).detach()
 
             dis_fake = d(x_fake)
-            dis_loss = get_dis_loss(dis_fake, dis_real)
+            dis_loss = get_dis_loss_hinge(dis_fake, dis_real)
             dis_loss.backward()
             d_optim.step()
 
@@ -105,7 +113,7 @@ def update(trainingwrapper):
                 z = sample_z(noise_batch_size).to(device)
                 x_fake = g(z)
                 dis_fake = d(x_fake)
-                gen_loss = get_gen_loss(dis_fake)
+                gen_loss = get_gen_loss_hinge(dis_fake)
                 gen_loss.backward()
 
                 for p in d.parameters():
