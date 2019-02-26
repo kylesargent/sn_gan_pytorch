@@ -47,7 +47,7 @@ def main():
 
         args.subsample = .001
 
-        args.max_iters = 2
+        args.max_iters = 4
         args.eval_interval = 2
 
         args.data_batch_size = 4

@@ -86,7 +86,7 @@ def update(trainingwrapper):
         d = nn.DataParallel(d)
         g = nn.DataParallel(g)
 
-        max_iters /= num_gpus
+        max_iters = max_iters // num_gpus
         noise_batch_size *= num_gpus
         data_batch_size *= num_gpus
         eval_batch_size *= num_gpus
