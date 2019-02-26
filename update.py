@@ -129,8 +129,6 @@ def update(trainingwrapper):
         # trainingwrapper.save(checkpoint_path)
 
     g.eval()
-
-
             
     n_imgs = n_fid_imgs
     images = []
@@ -142,6 +140,7 @@ def update(trainingwrapper):
 
     images = torch.cat(images)
     images = (images + 1) / 2
+    epoch = 10
 
     images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
     os.makedirs(os.path.dirname(images_path), exist_ok=True)
