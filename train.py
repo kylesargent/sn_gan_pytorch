@@ -19,6 +19,9 @@ def main():
     parser.add_argument('--pretrained_path', type=str, default=None, help='resume training of an earlier model if applicable')
     parser.add_argument('--override_hyperparameters', type=bool, default=False, help='train an old model with new hyperparameters')
 
+    # Architecture Parameters
+    parser.add_argument('--conditional', type=bool, default=True, help='Train a conditional GAN')
+
     # Training Hyperparameters
     parser.add_argument('--data_batch_size', type=int, default=64, help='batch size of samples from real data')
     parser.add_argument('--noise_batch_size', type=int, default=128, help='batch size of samples of random noise')
@@ -41,7 +44,7 @@ def main():
     if args.dry_run:
         args.n_fid_imgs = 100
         args.n_is_imgs = 10
-        
+
         args.subsample = .001
 
         args.max_iters = 2
@@ -64,8 +67,8 @@ def main():
     logging.info("Building models")
 
     if args.pretrained_path is None:
-        d = Cifar10Discriminator()
-        g = Cifar10Generator()
+        d = Cifar10Discriminator(n_classes=10 if args.conditional else 0)
+        g = Cifar10Generator(n_classes=10 if args.conditional else 0)
         d_optim = torch.optim.Adam(d.parameters(), lr=.0002, betas=(0.0, 0.9))
         g_optim = torch.optim.Adam(g.parameters(), lr=.0002, betas=(0.0, 0.9))
         trainingwrapper = TrainingWrapper(d, g, d_optim, g_optim, config)

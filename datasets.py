@@ -10,7 +10,8 @@ def get_dataset_struct(dataset, sn_gan_data_path, batch_size, subsample=None):
     if dataset == "cifar10":
         return {
             'train_iter': get_cifar10_iter(os.path.join(sn_gan_data_path, 'cifar10/'), batch_size, subsample),
-            'fid_stats_path': os.path.join(sn_gan_data_path, 'cifar10/', 'fid_stats_cifar10_train.npz')
+            'fid_stats_path': os.path.join(sn_gan_data_path, 'cifar10/', 'fid_stats_cifar10_train.npz'),
+            'n_classes': 10
         }
     else:
         raise NotImplementedError("Dataset loader not implemented")

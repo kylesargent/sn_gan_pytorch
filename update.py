@@ -43,6 +43,12 @@ def sample_z(batch_size):
     n = Normal(torch.tensor([0.0]), torch.tensor([1.0]))
     return n.sample((batch_size, 128)).squeeze(2)
 
+def sample_c(batch_size, n_classes):
+    if n_classes == 0:
+        return None
+    else:
+        return torch.randint(low=0, high=n_classes, size=(batch_size,))
+
 def checksum(model):
     return sum(torch.sum(parameter) for parameter in model.parameters())
 
@@ -58,6 +64,7 @@ def update(trainingwrapper):
     dis_iters = config['dis_iters']
     max_iters = config['max_iters']
     subsample = config['subsample']
+    conditional = config['conditional']
 
     n_is_imgs = config['n_is_imgs']
     n_fid_imgs = config['n_fid_imgs']
@@ -82,7 +89,7 @@ def update(trainingwrapper):
     dataset = get_dataset_struct(dataset, sn_gan_data_path, data_batch_size, subsample)
 
     fid_stats_path = dataset['fid_stats_path']
-
+    n_classes = dataset['n_classes'] if conditional else 0
     train_iter = dataset['train_iter']
 
     logging.info("Starting training\n")
@@ -100,8 +107,10 @@ def update(trainingwrapper):
 
                 g_optim.zero_grad()
                 z = sample_z(noise_batch_size).to(device)
-                x_fake = g(z)
-                dis_fake = d(x_fake)
+                y_fake = sample_c(noise_batch_size, n_classes).to(device)
+
+                x_fake = g(z, y_fake)
+                dis_fake = d(x_fake, y_fake)
                 gen_loss = get_gen_loss_hinge(dis_fake)
                 gen_loss.backward()
                 g_optim.step()
@@ -110,15 +119,20 @@ def update(trainingwrapper):
                     p.requires_grad = True
 
             # train discriminator
-            batch, _labels = next(train_iter)
+            x_real, y_real = next(train_iter)
+            x_real = x_real.to(device)
+            if conditional:
+                y_real = None
 
             d_optim.zero_grad()
-            x_real = batch.to(device)
-            dis_real = d(x_real)
-            z = sample_z(data_batch_size).to(device)
-            x_fake = g(z).detach()
+            dis_real = d(x_real, y_real)
 
-            dis_fake = d(x_fake)
+            z = sample_z(data_batch_size).to(device)
+            y_fake = sample_c(noise_batch_size, n_classes).to(device)
+
+            x_fake = g(z, y_fake).detach()
+            dis_fake = d(x_fake, y_fake)
+
             dis_loss = get_dis_loss_hinge(dis_fake, dis_real)
             dis_loss.backward()
             d_optim.step()
@@ -141,19 +155,24 @@ def update(trainingwrapper):
                     
             n_imgs = n_fid_imgs
             images = []
+            labels = []
             eval_batch_size = 128
             for _ in range(math.ceil(n_fid_imgs / float(eval_batch_size))):
                 with torch.no_grad():
                     z = sample_z(eval_batch_size).to(device)
-                    images += [g(z).cpu()]
+                    c = sample_c(eval_batch_size, n_classes).to(device)
+                    images += [g(z, c).cpu()]
+                    labels += [c.cpu()]
 
             images = torch.cat(images)
             images = (images + 1) / 2
             transform = ToPILImage()
 
-            for i, image in enumerate(images):
+            labels = torch.cat(labels)
+
+            for i, (label, image) in enumerate(zip(labels, images)):
                 im = transform(image)
-                im.save(os.path.join(eval_imgs_path, '{}.jpg'.format(i)))
+                im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, i)))
 
             # evaluation - losses
             logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
