@@ -25,8 +25,7 @@ def get_cifar10_iter(dataset_path, batch_size, subsample):
 	transform = transforms.Compose(
 	    [
 	        transforms.ToTensor(),
-	        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-	        # cifar10_preprocess
+	        cifar10_preprocess
 	    ]
 	)
 	trainset = torchvision.datasets.CIFAR10(

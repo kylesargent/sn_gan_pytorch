@@ -115,6 +115,7 @@ def update(trainingwrapper):
                 dis_fake = d(x_fake)
                 gen_loss = get_gen_loss_hinge(dis_fake)
                 gen_loss.backward()
+                g_optim.step()
 
                 for p in d.parameters():
                     p.requires_grad = True
