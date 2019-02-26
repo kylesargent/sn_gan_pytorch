@@ -51,7 +51,7 @@ def main():
         args.eval_interval = 2
 
         args.data_batch_size = 4
-        args.noise_batch_size = 4
+        args.noise_batch_size = 2
 
     model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
     results_path = os.path.join(args.sn_gan_data_path, model_name)

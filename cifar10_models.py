@@ -12,6 +12,8 @@ class Cifar10Generator(nn.Module):
         super(Cifar10Generator, self).__init__()
         
         self.bottom_width = bottom_width
+
+        self.n_classes = n_classes
         
         self.linear_1 = nn.Linear(z_size, (bottom_width ** 2) * 256)
         self.block_1 = GeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
@@ -27,6 +29,8 @@ class Cifar10Generator(nn.Module):
     def forward(self, z, y=None):
         if y is not None:
             assert(z.shape[0] == y.shape[0])
+        else:
+            assert(self.n_classes == 0)
 
         x = self.linear_1(z)
         x = x.view(x.shape[0], -1, self.bottom_width, self.bottom_width)
@@ -45,6 +49,8 @@ class Cifar10Discriminator(nn.Module):
     def __init__(self, channels=128, n_classes=0):
         super(Cifar10Discriminator, self).__init__()
         
+        self.n_classes = n_classes
+
         self.block1 = DiscriminatorBlock(3, channels, downsample=True, optimized=True)
         self.block2 = DiscriminatorBlock(channels, channels, downsample=True)
         self.block3 = DiscriminatorBlock(channels, channels, downsample=False)
@@ -58,6 +64,11 @@ class Cifar10Discriminator(nn.Module):
             xavier_uniform_(self.class_embedding.weight)
         
     def forward(self, x, y=None):
+        if y is not None:
+            assert(x.shape[0] == y.shape[0])
+        else:
+            assert(self.n_classes == 0)
+
         h = self.block1(x)
         h = self.block2(h)
         h = self.block3(h)
