@@ -150,13 +150,15 @@ def update(trainingwrapper):
         im = transform(image)
         im.save(os.path.join(images_path, '{}.jpg'.format(i)))
 
+    """
     # evaluation - is
     images = images.transpose(1,2)
     images = images.transpose(2,3) 
     images = images.numpy() * 256
-    
+
     inception_score = get_inception_score(list())[0]
     logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
+    """
 
     # evaluation - fid
     fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
