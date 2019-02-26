@@ -118,8 +118,8 @@ def update(trainingwrapper):
             dis_loss.backward()
             d_optim.step()
 
-            gen_losses += [gen_loss.cpu().numpy()]
-            dis_losses += [dis_loss.cpu().numpy()]
+            gen_losses += [gen_loss.cpu().data.numpy()]
+            dis_losses += [dis_loss.cpu().data.numpy()]
 
         logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
         logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
