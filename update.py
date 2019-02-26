@@ -121,6 +121,7 @@ def update(trainingwrapper):
             # train discriminator
             x_real, y_real = next(train_iter)
             x_real = x_real.to(device)
+            y_real = y_real.to(device)
             if not conditional:
                 y_real = None
 
