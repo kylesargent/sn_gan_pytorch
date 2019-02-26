@@ -5,7 +5,6 @@ from resnet_blocks import GeneratorBlock, DiscriminatorBlock
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import spectral_norm
 
-spectral_norm = id
 
 class Cifar10Generator(nn.Module):
     

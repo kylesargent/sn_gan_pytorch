@@ -6,7 +6,6 @@ from cifar10_models import Cifar10Generator, Cifar10Discriminator
 class TrainingWrapper(object):
 
 	def __init__(self, d, g, d_optim, g_optim, config):
-		# epoch, optims, g, d, train_iter, device, args
 		self.d = d
 		self.g = g
 		self.d_optim = d_optim

@@ -3,7 +3,6 @@ import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import spectral_norm
 
-spectral_norm = id
 
 class GeneratorBlock(nn.Module):
     
