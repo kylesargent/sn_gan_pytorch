@@ -80,6 +80,7 @@ def update(trainingwrapper):
     logging.info("Using device {}\n".format(str(device)))
 
     if torch.cuda.device_count() > 1:
+        print("USING MULTIPLE GPUS")
         d = nn.DataParallel(d)
         g = nn.DataParallel(g)
 

@@ -27,6 +27,8 @@ class Cifar10Generator(nn.Module):
 
         
     def forward(self, z, y=None):
+        print(z.shape[0])
+
         if y is not None:
             assert(z.shape[0] == y.shape[0])
         else:
@@ -64,6 +66,8 @@ class Cifar10Discriminator(nn.Module):
             xavier_uniform_(self.class_embedding.weight)
         
     def forward(self, x, y=None):
+        print(x.shape[0])
+
         if y is not None:
             assert(x.shape[0] == y.shape[0])
         else:
