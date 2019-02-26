@@ -61,10 +61,10 @@ def update(trainingwrapper):
 
     n_is_imgs = config['n_is_imgs']
     n_fid_imgs = config['n_fid_imgs']
+    eval_interval = config['eval_interval']
     dataset = config['dataset']
     sn_gan_data_path = config['sn_gan_data_path']
     results_path = config['results_path']
-    eval_imgs_path = os.path.join(results_path, 'eval_imgs/')
 
     global logging
     logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
@@ -84,9 +84,14 @@ def update(trainingwrapper):
     fid_stats_path = dataset['fid_stats_path']
 
     train_iter = dataset['train_iter']
+
     logging.info("Starting training\n")
-    
-    for iters in range(max_iters):
+    print("Training")
+
+    gen_losses = []
+    dis_losses = []
+
+    for iters in tqdm(range(max_iters)):
         for i in range(dis_iters):
             # train generator
             if i == 0:
@@ -118,48 +123,54 @@ def update(trainingwrapper):
             dis_loss.backward()
             d_optim.step()
 
-        # gen_losses += [gen_loss.cpu().data.numpy()]
-        # dis_losses += [dis_loss.cpu().data.numpy()]
+        gen_losses += [gen_loss.cpu().data.numpy()]
+        dis_losses += [dis_loss.cpu().data.numpy()]
 
-        # logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
-        # logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
+        if (iters + 1) % eval_interval == 0:
+            checkpoint = (iters + 1) // eval_interval
+            checkpoint_path = os.path.join(results_path, 'checkpoint_{}'.format(checkpoint))
 
-        # checkpoint_path = os.path.join(results_path, 'checkpoints/checkpoint_{}'.format(epoch))
-        # os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-        # trainingwrapper.save(checkpoint_path)
-
-    g.eval()
+            eval_imgs_path = os.path.join(checkpoint_path, 'eval_imgs/')
             
-    n_imgs = n_fid_imgs
-    images = []
-    eval_batch_size = 128
-    for _ in range(math.ceil(n_fid_imgs / float(eval_batch_size))):
-        with torch.no_grad():
-            z = sample_z(eval_batch_size).to(device)
-            images += [g(z).cpu()]
+            os.makedirs(os.path.dirname(eval_imgs_path), exist_ok=True)
 
-    images = torch.cat(images)
-    images = (images + 1) / 2
-    epoch = 10
+            model_save_path = os.path.join(checkpoint_path, 'wrapper.pt')
+            trainingwrapper.save(model_save_path)
 
-    images_path = os.path.join(eval_imgs_path, 'epoch_{}/'.format(epoch))
-    os.makedirs(os.path.dirname(images_path), exist_ok=True)
-    transform = ToPILImage()
+            g.eval()
+                    
+            n_imgs = n_fid_imgs
+            images = []
+            eval_batch_size = 128
+            for _ in range(math.ceil(n_fid_imgs / float(eval_batch_size))):
+                with torch.no_grad():
+                    z = sample_z(eval_batch_size).to(device)
+                    images += [g(z).cpu()]
 
-    for i, image in enumerate(images):
-        im = transform(image)
-        im.save(os.path.join(images_path, '{}.jpg'.format(i)))
+            images = torch.cat(images)
+            images = (images + 1) / 2
+            transform = ToPILImage()
 
-    """
-    # evaluation - is
-    images = images.transpose(1,2)
-    images = images.transpose(2,3) 
-    images = images.numpy() * 256
+            for i, image in enumerate(images):
+                im = transform(image)
+                im.save(os.path.join(eval_imgs_path, '{}.jpg'.format(i)))
 
-    inception_score = get_inception_score(list())[0]
-    logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
-    """
+            # evaluation - losses
+            logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
+            logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
+            gen_losses = []
+            dis_losses = []
 
-    # evaluation - fid
-    fid = calculate_fid_given_paths((images_path, fid_stats_path), sn_gan_data_path)
-    logging.info("FID at epoch {}: {}\n".format(epoch, fid))
+            # evaluation - is
+            images = images.transpose(1,2)
+            images = images.transpose(2,3) 
+            images = images.numpy() * 256
+
+            inception_score = get_inception_score(list(images))[0]
+            logging.info("Inception Score: {}\n".format(inception_score))
+
+            # evaluation - fid
+            fid = calculate_fid_given_paths((eval_imgs_path, fid_stats_path), sn_gan_data_path)
+            logging.info("FID: {}\n".format(fid))
+
+            g.train()
