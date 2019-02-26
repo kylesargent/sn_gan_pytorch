@@ -61,6 +61,7 @@ def update(trainingwrapper):
 
     data_batch_size = config['data_batch_size']
     noise_batch_size = config['noise_batch_size']
+    eval_batch_size = 128 
     dis_iters = config['dis_iters']
     max_iters = config['max_iters']
     subsample = config['subsample']
@@ -79,10 +80,16 @@ def update(trainingwrapper):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     logging.info("Using device {}\n".format(str(device)))
 
-    if torch.cuda.device_count() > 1:
+    num_gpus = torch.cuda.device_count()
+    if num_gpus > 1:
         print("USING MULTIPLE GPUS")
         d = nn.DataParallel(d)
         g = nn.DataParallel(g)
+
+        max_iters /= num_gpus
+        noise_batch_size *= num_gpus
+        data_batch_size *= num_gpus
+        eval_batch_size *= num_gpus
 
     d.to(device)
     g.to(device)
@@ -157,7 +164,6 @@ def update(trainingwrapper):
             n_imgs = n_fid_imgs
             images = []
             labels = []
-            eval_batch_size = 128
             for _ in range(math.ceil(n_fid_imgs / float(eval_batch_size))):
                 with torch.no_grad():
                     z = sample_z(eval_batch_size).to(device)
