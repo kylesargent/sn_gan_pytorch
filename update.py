@@ -128,8 +128,7 @@ def update(trainingwrapper):
             dis_real = d(x_real, y_real)
 
             z = sample_z(data_batch_size).to(device)
-            y_fake = sample_c(noise_batch_size, n_classes).to(device)
-
+            y_fake = sample_c(data_batch_size, n_classes).to(device)
             x_fake = g(z, y_fake).detach()
             dis_fake = d(x_fake, y_fake)
 
