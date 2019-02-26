@@ -32,8 +32,8 @@ def get_dis_loss(dis_fake, dis_real):
     return L1 + L2
 
 def get_dis_loss_hinge(dis_fake, dis_real):
-    L1 = F.relu(1. + dis_fake).mean(0)
-    L2 = F.relu(1. - dis_real).mean(0)
+    L1 = F.relu(1 + dis_fake).mean(0)
+    L2 = F.relu(1 - dis_real).mean(0)
     return L1 + L2
 
 
@@ -41,6 +41,8 @@ def sample_z(batch_size):
     n = Normal(torch.tensor([0.0]), torch.tensor([1.0]))
     return n.sample((batch_size, 128)).squeeze(2)
 
+def checksum(model):
+    return sum(torch.sum(parameter) for parameter in model.parameters())
 
 def update(trainingwrapper):
     d = trainingwrapper.d
@@ -83,6 +85,8 @@ def update(trainingwrapper):
     logging.info("Starting training\n")
     for epoch in range(epochs):
         # training
+        g.train()
+        d.train()
         
         logging.info("Beginning training epoch {}\n".format(epoch))
         gen_losses = []
@@ -130,9 +134,12 @@ def update(trainingwrapper):
 
         if epoch == epochs - 1:
             
+            g.eval()
+            d.eval()
+
             n_imgs = n_fid_imgs if epoch == epochs - 1 else n_is_imgs
             images = []
-            eval_batch_size = 10
+            eval_batch_size = 128
             for _ in range(math.ceil(n_imgs / float(eval_batch_size))):
                 with torch.no_grad():
                     z = sample_z(eval_batch_size).to(device)

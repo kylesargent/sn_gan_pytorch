@@ -5,6 +5,7 @@ from resnet_blocks import GeneratorBlock, DiscriminatorBlock
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import spectral_norm
 
+spectral_norm = id
 
 class Cifar10Generator(nn.Module):
     
@@ -56,7 +57,7 @@ class Cifar10Discriminator(nn.Module):
         p = self.block3(p)
         p = self.block4(p)
         p = F.relu(p)
-        
+
         p = torch.sum(p, dim=(2,3))
         
         p = self.dense(p)
