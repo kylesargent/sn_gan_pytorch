@@ -151,7 +151,11 @@ def update(trainingwrapper):
         im.save(os.path.join(images_path, '{}.jpg'.format(i)))
 
     # evaluation - is
-    inception_score = get_inception_score(list(images.numpy() * 256))[0]
+    images = images.transpose(1,2)
+    images = images.transpose(2,3) 
+    images = images.numpy() * 256
+    
+    inception_score = get_inception_score(list())[0]
     logging.info("Inception Score at epoch {}: {}\n".format(epoch, inception_score))
 
     # evaluation - fid
