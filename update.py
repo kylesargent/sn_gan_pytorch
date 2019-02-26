@@ -89,21 +89,6 @@ def update(trainingwrapper):
         dis_losses = []
 
         for i, (batch, _labels) in tqdm(enumerate(train_iter)):
-            z = Variable(sample_z(noise_batch_size).to(device))
-
-            # train discriminator
-            d_optim.zero_grad()
-
-            x_real = batch.to(device)
-            dis_real = d(x_real)
-            z = sample_z(data_batch_size).to(device)
-            x_fake = g(z).detach()
-
-            dis_fake = d(x_fake)
-            dis_loss = get_dis_loss_hinge(dis_fake, dis_real)
-            dis_loss.backward()
-            d_optim.step()
-
             # train generator
             if i % dis_iters == 0: 
                 for p in d.parameters():
@@ -120,8 +105,21 @@ def update(trainingwrapper):
                 for p in d.parameters():
                     p.requires_grad = True
 
-                gen_losses += [gen_loss.cpu().data.numpy()]
-                dis_losses += [dis_loss.cpu().data.numpy()]
+            # train discriminator
+            d_optim.zero_grad()
+
+            x_real = batch.to(device)
+            dis_real = d(x_real)
+            z = sample_z(data_batch_size).to(device)
+            x_fake = g(z).detach()
+
+            dis_fake = d(x_fake)
+            dis_loss = get_dis_loss_hinge(dis_fake, dis_real)
+            dis_loss.backward()
+            d_optim.step()
+
+            gen_losses += [gen_loss.cpu().numpy()]
+            dis_losses += [dis_loss.cpu().numpy()]
 
         logging.info("Mean generator loss: {}\n".format(np.mean(gen_losses)))
         logging.info("Mean discriminator loss: {}\n".format(np.mean(dis_losses)))
