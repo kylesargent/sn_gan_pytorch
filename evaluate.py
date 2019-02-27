@@ -51,6 +51,7 @@ def evaluate(trainingwrapper, dataset):
     model_save_path = os.path.join(checkpoint_path, 'wrapper.pt')
     trainingwrapper.save(model_save_path)
 
+    g.to(device)
     g.eval()
             
     n_imgs = n_fid_imgs
