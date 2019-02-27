@@ -68,9 +68,6 @@ def main():
     num_gpus = torch.cuda.device_count()
     if num_gpus > 1:
         print("USING MULTIPLE GPUS")
-        d = nn.DataParallel(d)
-        g = nn.DataParallel(g)
-
         args.max_iters = args.max_iters // num_gpus
         args.eval_interval /= num_gpus
 
@@ -114,7 +111,12 @@ def main():
 
     logging.info("Built models and training wrapper")
 
-    train(trainingwrapper, dataset)
+    if num_gpus > 1:
+        print("USING MULTIPLE GPUS")
+        trainingwrapper.d = nn.DataParallel(trainingwrapper.d)
+        trainingwrapper.g = nn.DataParallel(trainingwrapper.g)
+
+    # train(trainingwrapper, dataset)
     evaluate(trainingwrapper, dataset)
 
         
