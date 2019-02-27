@@ -39,7 +39,7 @@ def main():
 
     parser.add_argument('--eval_interval', type=int, default=5000, help='how often to report training statistics')
     parser.add_argument('--dry_run', action='store_true', help='debug on a small subset of training data, and limit evaluation')
-    parser.add_argument('--no_truncation', action='store_false', help='don\'t generate images with truncated noise trick during evaluation')
+    parser.add_argument('--truncate', action='store_true', help='generate images with truncated noise trick during evaluation')
 
     args = parser.parse_args()
     if args.pretrained_path is None and args.override_hyperparameters:
@@ -116,7 +116,7 @@ def main():
         trainingwrapper.d = nn.DataParallel(trainingwrapper.d)
         trainingwrapper.g = nn.DataParallel(trainingwrapper.g)
 
-    # train(trainingwrapper, dataset)
+    train(trainingwrapper, dataset)
     evaluate(trainingwrapper, dataset)
 
         

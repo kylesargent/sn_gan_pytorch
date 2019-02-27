@@ -9,7 +9,7 @@ from torch.distributions.normal import Normal
 from scipy.stats import truncnorm
 import numpy as np
 
-def sample_z(batch_size, truncate=False, clip=1):
+def sample_z(batch_size, truncate=False, clip=1.5):
     if truncate:
         n = truncnorm.rvs(-clip, clip, size=(batch_size, 128))
         return torch.from_numpy(n).float()

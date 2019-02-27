@@ -43,8 +43,6 @@ def train(trainingwrapper, dataset):
     g_scheduler = trainingwrapper.g_scheduler
     config = trainingwrapper.config
 
-    
-
     data_batch_size = config['data_batch_size']
     noise_batch_size = config['noise_batch_size']
     dis_iters = config['dis_iters']

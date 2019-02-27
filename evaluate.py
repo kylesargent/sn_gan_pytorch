@@ -39,7 +39,8 @@ def evaluate(trainingwrapper, dataset):
     n_is_imgs = config['n_is_imgs']
     n_fid_imgs = config['n_fid_imgs']
     eval_batch_size = config['eval_batch_size']
-    truncate = not config['no_truncation']
+    truncate = config['truncate']
+    logging.info('Computing examples with truncation={}'.format(truncate))
 
     ###
     global current_checkpoint
@@ -72,7 +73,7 @@ def evaluate(trainingwrapper, dataset):
     labels = torch.cat(labels)
 
     class_counts = np.zeros(n_classes)
-    for label, image in enumerate(zip(labels, images)):
+    for label, image in zip(labels, images):
         im = transform(image)
         im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, class_counts[label])))
         class_counts[label] += 1
@@ -82,8 +83,8 @@ def evaluate(trainingwrapper, dataset):
     images = images.transpose(2,3) 
     images = images.numpy() * 256
 
-    inception_score = get_inception_score(list(images))[0]
-    logging.info("Inception Score: {}\n".format(inception_score))
+    inception_score_mean, inception_score_variance = get_inception_score(list(images))
+    logging.info("Inception Score: {}+/-{}".format(inception_score_mean, inception_score_variance))
 
     # evaluation - fid
     fid = calculate_fid_given_paths((eval_imgs_path, fid_stats_path), sn_gan_data_path)
