@@ -1,88 +1,122 @@
-import argparse
-import os
-from os.path import expanduser
 import logging
-from time import gmtime, strftime
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+import sys
+from tqdm import tqdm
 
-from cifar10_models import Cifar10Generator, Cifar10Discriminator
-from trainingwrapper import TrainingWrapper
-from update import update
+from PIL import Image
+import math
+import numpy as np
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-DEFAULT_SN_GAN_DATA_PATH = os.path.expanduser('~/sn_gan_pytorch_data')
+from cifar10_models import sample_z, sample_c
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--sn_gan_data_path', type=str, default=DEFAULT_SN_GAN_DATA_PATH, help='where to put model data and downloads')
-    parser.add_argument('--dataset', type=str, default='cifar10', help='name of dataset to train with')
-    parser.add_argument('--pretrained_path', type=str, default=None, help='resume training of an earlier model if applicable')
-    parser.add_argument('--override_hyperparameters', type=bool, default=False, help='train an old model with new hyperparameters')
+def get_gen_loss(dis_fake):
+    return F.softplus(-dis_fake).mean(0)
 
-    # Architecture Parameters
-    parser.add_argument('--conditional', type=bool, default=True, help='Train a conditional GAN')
+def get_gen_loss_hinge(dis_fake):
+    return -dis_fake.mean(0)
 
-    # Training Hyperparameters
-    parser.add_argument('--data_batch_size', type=int, default=64, help='batch size of samples from real data')
-    parser.add_argument('--noise_batch_size', type=int, default=128, help='batch size of samples of random noise')
-    parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
-    parser.add_argument('--max_iters', type=int, default=50000, help='number of training iterations')
-    parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
+
+def get_dis_loss(dis_fake, dis_real):
+    L1 = F.softplus(dis_fake).mean(0)
+    L2 = F.softplus(-dis_real).mean(0)    
+    return L1 + L2
+
+def get_dis_loss_hinge(dis_fake, dis_real):
+    L1 = F.relu(1 + dis_fake).mean(0)
+    L2 = F.relu(1 - dis_real).mean(0)
+    return L1 + L2
+
+def checksum(model):
+    return sum(torch.sum(parameter) for parameter in model.parameters())
+
+def train(trainingwrapper, dataset):
+    d = trainingwrapper.d.train()
+    g = trainingwrapper.g.train()
+    d_optim = trainingwrapper.d_optim
+    g_optim = trainingwrapper.g_optim
+    d_scheduler = trainingwrapper.d_scheduler
+    g_scheduler = trainingwrapper.g_scheduler
+    config = trainingwrapper.config
+
     
-    # Evaluation Hyperparameters
-    parser.add_argument('--n_fid_imgs', type=int, default=10000, help='number of images to use for FID, should be >= 10000, must be > 2048')
-    parser.add_argument('--n_is_imgs', type=int, default=5000, help='number of images to use for evaluating inception score')
 
-    parser.add_argument('--eval_interval', type=int, default=5000, help='how often to report training statistics')
-    parser.add_argument('--dry_run', action='store_true', help='debug on a small subset of training data, and limit evaluation')
+    data_batch_size = config['data_batch_size']
+    noise_batch_size = config['noise_batch_size']
+    dis_iters = config['dis_iters']
+    max_iters = config['max_iters']
+    subsample = config['subsample']
+    conditional = config['conditional']
 
-    args = parser.parse_args()
-    if args.pretrained_path is None and args.override_hyperparameters:
-        parser.error('--override_hyperparameters can only be set when loading a previous model with --pretrained-path')
-    if args.max_iters % args.eval_interval != 0:
-        parser.error('--eval_interval must divide --max_iters')
-    if args.dry_run:
-        args.n_fid_imgs = 100
-        args.n_is_imgs = 10
+    sn_gan_data_path = config['sn_gan_data_path']
+    results_path = config['results_path']
 
-        args.subsample = .001
-
-        args.max_iters = 4
-        args.eval_interval = 2
-
-        args.data_batch_size = 4
-        args.noise_batch_size = 2
-
-    model_name = strftime("%a, %d %b %Y %H:%M:%S +0000/", gmtime())
-    results_path = os.path.join(args.sn_gan_data_path, model_name)
-    os.makedirs(os.path.dirname(results_path), exist_ok=True)
     global logging
     logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
 
-    config = {
-        'results_path': results_path,
-        **vars(args)
-    }
+    n_classes = dataset['n_classes'] if conditional else 0
+    train_iter = dataset['train_iter']
 
-    logging.info("Building models")
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    logging.info("Using device {}\n".format(str(device)))
+    d.to(device)
+    g.to(device)
 
-    if args.pretrained_path is None:
-        d = Cifar10Discriminator(n_classes=10 if args.conditional else 0)
-        g = Cifar10Generator(n_classes=10 if args.conditional else 0)
-        d_optim = torch.optim.Adam(d.parameters(), lr=.0002, betas=(0.0, 0.9))
-        g_optim = torch.optim.Adam(g.parameters(), lr=.0002, betas=(0.0, 0.9))
-        trainingwrapper = TrainingWrapper(d, g, d_optim, g_optim, config)
-    else:
-        trainingwrapper = TrainingWrapper.load(args.pretrained_path)
-        trainingwrapper.config['max_iters'] = args.max_iters
-        trainingwrapper.config['results_path'] = results_path
-        if args.override_hyperparameters:
-            trainingwrapper.config = config
+    logging.info("Starting training\n")
+    print("Training")
 
-    logging.info("Build training wrapper")
+    gen_losses = dis_losses = []
 
-    update(trainingwrapper)
+    for iters in tqdm(range(max_iters)):
+        d_scheduler.step()
+        g_scheduler.step()
 
-        
-if __name__ == '__main__':
-    main()
+        for i in range(dis_iters):
+            # train generator
+            if i == 0:
+                for p in d.parameters():
+                    p.requires_grad = False
+
+                g_optim.zero_grad()
+                z = sample_z(noise_batch_size).to(device)
+                y_fake = sample_c(noise_batch_size, n_classes).to(device)
+
+                x_fake = g(z, y_fake)
+                dis_fake = d(x_fake, y_fake)
+                gen_loss = get_gen_loss_hinge(dis_fake)
+                gen_loss.backward()
+                g_optim.step()
+
+                for p in d.parameters():
+                    p.requires_grad = True
+
+            # train discriminator
+            x_real, y_real = next(train_iter)
+            x_real = x_real.to(device)
+            y_real = y_real.to(device)
+            if not conditional:
+                y_real = None
+
+            d_optim.zero_grad()
+            dis_real = d(x_real, y_real)
+
+            z = sample_z(data_batch_size).to(device)
+            y_fake = sample_c(data_batch_size, n_classes).to(device)
+            x_fake = g(z, y_fake).detach()
+            dis_fake = d(x_fake, y_fake)
+
+            dis_loss = get_dis_loss_hinge(dis_fake, dis_real)
+            dis_loss.backward()
+            d_optim.step()
+
+        gen_losses += [gen_loss.cpu().data.numpy()]
+        dis_losses += [dis_loss.cpu().data.numpy()]
+
+        if (iters + 1) % 100 == 0:
+            logging.info("Mean generator loss: {}", np.mean(gen_losses))
+            logging.info("Mean discriminator loss: {}", np.mean(dis_losses))
+            gen_losses = dis_losses = []

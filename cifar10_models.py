@@ -5,6 +5,23 @@ from resnet_layers import GeneratorBlock, DiscriminatorBlock
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import spectral_norm
 
+from torch.distributions.normal import Normal
+from scipy.stats import truncnorm
+import numpy as np
+
+def sample_z(batch_size, truncate=False, clip=1):
+    if truncate:
+        n = truncnorm.rvs(-clip, clip, size=(batch_size, 128))
+        return torch.from_numpy(n).float()
+    else:
+        n = Normal(torch.tensor([0.0]), torch.tensor([1.0]))
+        return n.sample((batch_size, 128)).squeeze(2)
+
+def sample_c(batch_size, n_classes):
+    if n_classes == 0:
+        return None
+    else:
+        return torch.randint(low=0, high=n_classes, size=(batch_size,))
 
 class Cifar10Generator(nn.Module):
     

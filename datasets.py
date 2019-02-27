@@ -6,10 +6,10 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 
-def get_dataset_struct(dataset, sn_gan_data_path, batch_size, subsample=None):
+def get_dataset_struct(dataset, sn_gan_data_path, batch_size, num_workers, subsample=None):
     if dataset == "cifar10":
         return {
-            'train_iter': get_cifar10_iter(os.path.join(sn_gan_data_path, 'cifar10/'), batch_size, subsample),
+            'train_iter': get_cifar10_iter(os.path.join(sn_gan_data_path, 'cifar10/'), batch_size, num_workers, subsample),
             'fid_stats_path': os.path.join(sn_gan_data_path, 'cifar10/', 'fid_stats_cifar10_train.npz'),
             'n_classes': 10
         }
@@ -17,7 +17,7 @@ def get_dataset_struct(dataset, sn_gan_data_path, batch_size, subsample=None):
         raise NotImplementedError("Dataset loader not implemented")
 
     
-def get_cifar10_iter(dataset_path, batch_size, subsample):
+def get_cifar10_iter(dataset_path, batch_size, num_workers, subsample):
     def cifar10_preprocess(tensor):
         transformed_tensor = 2. * tensor - 1.
         transformed_tensor += torch.rand(*transformed_tensor.shape) / 128.
@@ -40,7 +40,7 @@ def get_cifar10_iter(dataset_path, batch_size, subsample):
         trainloader = torch.utils.data.DataLoader(
             trainset, 
             batch_size=batch_size,
-            num_workers=1,
+            num_workers=num_workers,
             shuffle=True
         )
     else:
@@ -50,7 +50,7 @@ def get_cifar10_iter(dataset_path, batch_size, subsample):
             trainset, 
             batch_size=batch_size,
             shuffle=False, 
-            num_workers=1,
+            num_workers=num_workers,
             sampler=sampler
         )
     
