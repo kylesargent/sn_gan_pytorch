@@ -11,8 +11,8 @@ class ConditionalBatchNorm2d(nn.Module):
         self.num_features = num_features
         self.bn = nn.BatchNorm2d(num_features, affine=False)
         self.embed = nn.Embedding(num_classes, num_features * 2)
-        xavier_uniform_(self.embed.weight.data[:, :num_features]) #.normal_(1, 0.02)  # Initialise scale at N(1, 0.02)
-        self.embed.weight.data[:, num_features:].zero_()  # Initialise bias at 0
+        self.embed.weight.data[:, :num_features] = 1  
+        self.embed.weight.data[:, num_features:] = 0  
 
     def forward(self, x, y):
         out = self.bn(x)

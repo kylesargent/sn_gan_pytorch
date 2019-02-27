@@ -39,6 +39,7 @@ def evaluate(trainingwrapper, dataset):
     n_is_imgs = config['n_is_imgs']
     n_fid_imgs = config['n_fid_imgs']
     eval_batch_size = config['eval_batch_size']
+    truncate = config['truncate']
 
     ###
     global current_checkpoint
@@ -59,7 +60,7 @@ def evaluate(trainingwrapper, dataset):
     labels = []
     with torch.no_grad():
         for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
-            z = sample_z(eval_batch_size, truncate=True).to(device)
+            z = sample_z(eval_batch_size, truncate=truncate).to(device)
             c = sample_c(eval_batch_size, n_classes).to(device)
             images += [g(z, c).cpu()]
             labels += [c.cpu()]
@@ -70,9 +71,11 @@ def evaluate(trainingwrapper, dataset):
 
     labels = torch.cat(labels)
 
-    for i, (label, image) in enumerate(zip(labels, images)):
+    class_counts = np.zeros(n_classes)
+    for label, image in enumerate(zip(labels, images)):
         im = transform(image)
-        im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, i)))
+        im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, class_counts[label])))
+        class_counts[label] += 1
 
     # evaluation - is
     images = images.transpose(1,2)
