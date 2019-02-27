@@ -10,6 +10,7 @@ from train import train
 from evaluate import evaluate
 
 import torch
+import torch.nn as nn
 from datasets import get_dataset_struct
 
 DEFAULT_SN_GAN_DATA_PATH = os.path.expanduser('~/sn_gan_pytorch_data')

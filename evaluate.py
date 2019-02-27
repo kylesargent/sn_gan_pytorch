@@ -39,7 +39,7 @@ def evaluate(trainingwrapper, dataset):
     n_is_imgs = config['n_is_imgs']
     n_fid_imgs = config['n_fid_imgs']
     eval_batch_size = config['eval_batch_size']
-    truncate = config['truncate']
+    truncate = not config['no_truncation']
 
     ###
     global current_checkpoint
