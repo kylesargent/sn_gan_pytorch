@@ -72,7 +72,7 @@ def evaluate(trainingwrapper, dataset):
 
     labels = torch.cat(labels)
 
-    class_counts = np.zeros(n_classes)
+    class_counts = np.zeros(n_classes).int()
     for label, image in zip(labels, images):
         im = transform(image)
         im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, class_counts[label])))

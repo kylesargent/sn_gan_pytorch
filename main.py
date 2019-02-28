@@ -37,15 +37,12 @@ def main():
     parser.add_argument('--n_is_imgs', type=int, default=5000, help='number of images to use for evaluating inception score')
     parser.add_argument('--eval_batch_size', type=int, default=512, help='generate images for evaluation in batches so as not to overload model')
 
-    parser.add_argument('--eval_interval', type=int, default=5000, help='how often to report training statistics')
     parser.add_argument('--dry_run', action='store_true', help='debug on a small subset of training data, and limit evaluation')
     parser.add_argument('--truncate', action='store_true', help='generate images with truncated noise trick during evaluation')
 
     args = parser.parse_args()
     if args.pretrained_path is None and args.override_hyperparameters:
         parser.error('--override_hyperparameters can only be set when loading a previous model with --pretrained-path')
-    if args.max_iters % args.eval_interval != 0:
-        parser.error('--eval_interval must divide --max_iters')
     if args.dry_run:
         args.n_fid_imgs = 100
         args.n_is_imgs = 10
@@ -69,7 +66,6 @@ def main():
     if num_gpus > 1:
         print("USING MULTIPLE GPUS")
         args.max_iters = args.max_iters // num_gpus
-        args.eval_interval /= num_gpus
 
         args.noise_batch_size *= num_gpus
         args.data_batch_size *= num_gpus
