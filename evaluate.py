@@ -35,7 +35,6 @@ def evaluate(trainingwrapper, dataset):
 
     g = trainingwrapper.g
 
-    eval_interval = config['eval_interval']
     n_is_imgs = config['n_is_imgs']
     n_fid_imgs = config['n_fid_imgs']
     eval_batch_size = config['eval_batch_size']

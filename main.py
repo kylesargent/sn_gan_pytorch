@@ -50,7 +50,6 @@ def main():
         args.subsample = .001
 
         args.max_iters = 4
-        args.eval_interval = 4
 
         args.data_batch_size = 4
         args.noise_batch_size = 2
