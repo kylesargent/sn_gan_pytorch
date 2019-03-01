@@ -34,6 +34,7 @@ def get_dis_loss_hinge(dis_fake, dis_real):
 def checksum(model):
     return sum(torch.sum(parameter) for parameter in model.parameters())
 
+
 def train(trainingwrapper, dataset):
     d = trainingwrapper.d.train()
     g = trainingwrapper.g.train()
@@ -49,6 +50,7 @@ def train(trainingwrapper, dataset):
     max_iters = config['max_iters']
     subsample = config['subsample']
     conditional = config['conditional']
+    lam = config['lam']
 
     sn_gan_data_path = config['sn_gan_data_path']
     results_path = config['results_path']
@@ -93,11 +95,14 @@ def train(trainingwrapper, dataset):
                     p.requires_grad = True
 
             # train discriminator
+            ## compute probabilities
             x_real, y_real = next(train_iter)
             x_real = x_real.to(device)
             y_real = y_real.to(device)
             if not conditional:
                 y_real = None
+
+            data_batch_size = x_real.shape[0]
 
             d_optim.zero_grad()
             dis_real = d(x_real, y_real)
@@ -109,6 +114,30 @@ def train(trainingwrapper, dataset):
 
             dis_loss = get_dis_loss_hinge(dis_fake, dis_real)
             dis_loss.backward()
+
+            ## compute gradient penalty
+            eps = torch.rand(data_batch_size, 1, 1, 1).to(device)
+            eps_c = torch.randint(0, 2, size=(data_batch_size,)).to(device)
+
+            x_mid = eps * x_real + (1 - eps) * x_fake
+            y_mid = eps_c * y_real + (1 - eps_c) * y_fake   # this is kind of a hack but how else do you do GP for a conditional discriminator?
+
+            x_mid.detach()
+            x_mid.requires_grad = True
+            dis_mid = d(x_mid, y_mid)
+            grad_outputs = torch.ones_like(dis_mid).to(device)
+            grads = torch.autograd.grad(
+                outputs=dis_mid, 
+                inputs=x_mid,
+                grad_outputs=grad_outputs,
+                create_graph=True, 
+                retain_graph=True, 
+                only_inputs=True
+            )[0]
+
+            gradient_penalty = lam * ((torch.sum(grads**2, dim=(1,2,3))**.5 - 1)**2).mean(0)
+            gradient_penalty.backward()
+
             d_optim.step()
 
         gen_losses += [gen_loss.cpu().data.numpy()]

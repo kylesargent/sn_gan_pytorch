@@ -6,18 +6,22 @@ from torch.nn.utils import spectral_norm
 
 class ConditionalBatchNorm2d(nn.Module):
     # Thanks to https://github.com/Kaixhin for this layer
-    def __init__(self, num_features, num_classes):
+    
+    def __init__(self, num_features, num_classes, use_gamma=False):
         super().__init__()
         self.num_features = num_features
         self.bn = nn.BatchNorm2d(num_features, affine=False)
         self.embed = nn.Embedding(num_classes, num_features * 2)
         self.embed.weight.data[:, :num_features] = 1  
         self.embed.weight.data[:, num_features:] = 0  
+        self.use_gamma = use_gamma
 
     def forward(self, x, y):
         out = self.bn(x)
         gamma, beta = self.embed(y).chunk(2, 1)
-        out = gamma.view(-1, self.num_features, 1, 1) * out + beta.view(-1, self.num_features, 1, 1)
+        if self.use_gamma:
+            out = gamma.view(-1, self.num_features, 1, 1) * out
+        out += beta.view(-1, self.num_features, 1, 1)
         return out
 
 
