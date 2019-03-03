@@ -61,7 +61,9 @@ def evaluate(trainingwrapper, dataset):
     with torch.no_grad():
         for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
             z = sample_z(eval_batch_size, truncate=truncate).to(device)
-            c = sample_c(eval_batch_size, n_classes).to(device)
+            c = sample_c(eval_batch_size, n_classes)
+            if c is not None:
+                c = c.to(device)
             images += [g(z, c).cpu()]
             labels += [c.cpu()]
 
