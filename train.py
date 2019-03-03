@@ -148,10 +148,10 @@ def train(trainingwrapper, dataset):
 
             d_optim.step()
 
-        gen_losses += [gen_loss.cpu().data.numpy()[0]]
-        dis_losses += [dis_loss.cpu().data.numpy()[0]]
+        gen_losses += [gen_loss.cpu().data.numpy()]
+        dis_losses += [dis_loss.cpu().data.numpy()]
 
         if (iters + 1) % 100 == 0:
-            logging.info("Mean generator loss: {}", np.mean(gen_losses))
-            logging.info("Mean discriminator loss: {}", np.mean(dis_losses))
+            logging.info("Mean generator loss: {}", np.mean(gen_losses)[0])
+            logging.info("Mean discriminator loss: {}", np.mean(dis_losses)[0])
             gen_losses = dis_losses = []
