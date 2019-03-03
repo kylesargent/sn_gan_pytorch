@@ -148,8 +148,8 @@ def train(trainingwrapper, dataset):
 
             d_optim.step()
 
-        gen_losses += [gen_loss.cpu().data.numpy()]
-        dis_losses += [dis_loss.cpu().data.numpy()]
+        gen_losses += [gen_loss.cpu().data.numpy()[0]]
+        dis_losses += [dis_loss.cpu().data.numpy()[0]]
 
         if (iters + 1) % 100 == 0:
             logging.info("Mean generator loss: {}", np.mean(gen_losses))
