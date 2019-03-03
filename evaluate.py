@@ -57,31 +57,40 @@ def evaluate(trainingwrapper, dataset):
             
     n_imgs = n_fid_imgs
     images = []
-    labels = []
-    with torch.no_grad():
-        for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
-            z = sample_z(eval_batch_size, truncate=truncate).to(device)
-            c = sample_c(eval_batch_size, n_classes)
-            if c is not None:
-                c = c.to(device)
-            images += [g(z, c).cpu()]
-            if c is not None:
-                c = c.cpu()
-            else:
-                c = 0
-            labels += [c]
 
-    images = torch.cat(images)
-    images = (images + 1) / 2
-    transform = ToPILImage()
+    if conditional:
+        labels = []
+        with torch.no_grad():
+            for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
+                z = sample_z(eval_batch_size, truncate=truncate).to(device)
+                c = sample_c(eval_batch_size, n_classes)
+                images += [g(z, c).cpu()]
+                labels += [c.cpu()]
 
-    labels = torch.cat(labels)
+        images = torch.cat(images)
+        images = (images + 1) / 2
+        transform = ToPILImage()
 
-    class_counts = np.zeros(n_classes).astype(int)
-    for label, image in zip(labels, images):
-        im = transform(image)
-        im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, class_counts[label])))
-        class_counts[label] += 1
+        labels = torch.cat(labels)
+
+        class_counts = np.zeros(n_classes).astype(int)
+        for label, image in zip(labels, images):
+            im = transform(image)
+            im.save(os.path.join(eval_imgs_path, 'class_{}_image_{}.jpg'.format(label, class_counts[label])))
+            class_counts[label] += 1
+    else:
+        with torch.no_grad():
+            for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
+                z = sample_z(eval_batch_size, truncate=truncate).to(device)
+                images += [g(z).cpu()]
+
+        images = torch.cat(images)
+        images = (images + 1) / 2
+        transform = ToPILImage()
+
+        for count, image in enumerate(images):
+            im = transform(image)
+            im.save(os.path.join(eval_imgs_path, 'image_{}.jpg'.format(count)))
 
     # evaluation - is
     images = images.transpose(1,2)
