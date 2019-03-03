@@ -29,9 +29,6 @@ class SNLinear(nn.Linear):
     @property
     def W_bar(self):
         sigma, u = max_singular_value(self.weight, self.u, self.Ip)
-
-        print(sigma, u)
-
         self.u = u
         return self.weight / sigma
 
