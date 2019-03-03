@@ -65,7 +65,11 @@ def evaluate(trainingwrapper, dataset):
             if c is not None:
                 c = c.to(device)
             images += [g(z, c).cpu()]
-            labels += [c.cpu()]
+            if c is not None:
+                c = c.cpu()
+            else:
+                c = 0
+            labels += [c]
 
     images = torch.cat(images)
     images = (images + 1) / 2
