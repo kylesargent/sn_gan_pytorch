@@ -8,6 +8,8 @@ from torch.nn.utils import spectral_norm
 from torch.distributions.normal import Normal
 from scipy.stats import truncnorm
 import numpy as np
+from spectral_layers import SNLinear
+
 
 def sample_z(batch_size, truncate=False, clip=1.5):
     if truncate:
@@ -29,7 +31,6 @@ class Cifar10Generator(nn.Module):
         super(Cifar10Generator, self).__init__()
         
         self.bottom_width = bottom_width
-
         self.n_classes = n_classes
         
         self.linear_1 = nn.Linear(z_size, (bottom_width ** 2) * 256)
@@ -73,7 +74,7 @@ class Cifar10Discriminator(nn.Module):
         self.block3 = DiscriminatorBlock(channels, channels, downsample=False)
         self.block4 = DiscriminatorBlock(channels, channels, downsample=False)
         
-        self.dense = spectral_norm(nn.Linear(channels, 1, bias=False))
+        self.dense = SNLinear(channels, 1, bias=False) 
         xavier_uniform_(self.dense.weight)
 
         if n_classes > 0:

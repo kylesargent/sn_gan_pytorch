@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--override_hyperparameters', type=bool, default=False, help='train the states of an old model with new hyperparameters')
 
     # Architecture Parameters
-    parser.add_argument('--conditional', type=bool, default=True, help='Train a conditional GAN')
+    parser.add_argument('--conditional', type=bool, default=False, help='Train a conditional GAN')
 
     # Training Hyperparameters
     parser.add_argument('--data_batch_size', type=int, default=64, help='batch size of samples from real data')

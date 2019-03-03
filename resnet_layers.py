@@ -2,11 +2,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import spectral_norm
-
+from spectral_layers import SNConv2d
+import torch
 
 class ConditionalBatchNorm2d(nn.Module):
     # Thanks to https://github.com/Kaixhin for this layer
-    
+
     def __init__(self, num_features, num_classes, use_gamma=False):
         super().__init__()
         self.num_features = num_features
@@ -53,7 +54,7 @@ class GeneratorBlock(nn.Module):
 
         xavier_uniform_(self.conv1.weight, gain=1.41)
         xavier_uniform_(self.conv2.weight, gain=1.41)
-        
+
             
     def forward(self, x, y=None):
         # residual
@@ -93,19 +94,18 @@ class DiscriminatorBlock(nn.Module):
             else:
                 hidden_channels = in_channels
         
-        self.conv1 = spectral_norm(nn.Conv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding))
-        self.conv2 = spectral_norm(nn.Conv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding))
+        self.conv1 = SNConv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
+        self.conv2 = SNConv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
         
         if self.learnable_shortcut:
-            self.shortcut = spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=1))
+            self.shortcut = SNConv2d(in_channels, out_channels, kernel_size=1)
             xavier_uniform_(self.shortcut.weight)
 
         xavier_uniform_(self.conv1.weight, gain=1.41)
         xavier_uniform_(self.conv2.weight, gain=1.41)
+
         
-            
-    def forward(self, x):
-        # residual
+    def get_residual(self, x):
         r = x
         if not self.optimized:
             r = self.activation(r)
@@ -114,12 +114,18 @@ class DiscriminatorBlock(nn.Module):
         r = self.conv2(r)
         if self.downsample:
             r = F.avg_pool2d(r, 2)
-        
-        # shortcut
+        return r
+
+    def get_shortcut(self, x):
         x_sc = x
-        if self.learnable_shortcut:
-            x_sc = self.shortcut(x_sc)
-            if self.downsample:
-                x_sc = F.avg_pool2d(x_sc, 2)
-            
-        return r + x_sc
+        if self.optimized:
+            return self.shortcut(F.avg_pool2d(x_sc, 2))
+        else:
+            if self.learnable_shortcut:
+                x_sc = self.shortcut(x_sc)
+                if self.downsample:
+                    x_sc = F.avg_pool2d(x_sc, 2)
+        return x_sc
+
+    def forward(self, x):
+        return self.get_residual(x) + self.get_shortcut(x)

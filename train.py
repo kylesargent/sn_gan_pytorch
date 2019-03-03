@@ -32,7 +32,7 @@ def get_dis_loss_hinge(dis_fake, dis_real):
     return L1 + L2
 
 def checksum(model):
-    return sum(torch.sum(parameter) for parameter in model.parameters())
+    return sum(torch.sum(parameter.data) for parameter in model.parameters())
 
 
 def train(trainingwrapper, dataset):
@@ -83,10 +83,13 @@ def train(trainingwrapper, dataset):
 
                 g_optim.zero_grad()
                 z = sample_z(noise_batch_size).to(device)
-                y_fake = sample_c(noise_batch_size, n_classes).to(device)
+                y_fake = sample_c(noise_batch_size, n_classes)
+                if y_fake is not None:
+                    y_fake = y_fake.to(device)
 
                 x_fake = g(z, y_fake)
                 dis_fake = d(x_fake, y_fake)
+
                 gen_loss = get_gen_loss_hinge(dis_fake)
                 gen_loss.backward()
                 g_optim.step()
@@ -99,6 +102,7 @@ def train(trainingwrapper, dataset):
             x_real, y_real = next(train_iter)
             x_real = x_real.to(device)
             y_real = y_real.to(device)
+
             if not conditional:
                 y_real = None
 
@@ -108,7 +112,9 @@ def train(trainingwrapper, dataset):
             dis_real = d(x_real, y_real)
 
             z = sample_z(data_batch_size).to(device)
-            y_fake = sample_c(data_batch_size, n_classes).to(device)
+            y_fake = sample_c(data_batch_size, n_classes)
+            if y_fake is not None:
+                y_fake = y_fake.to(device)
             x_fake = g(z, y_fake).detach()
             dis_fake = d(x_fake, y_fake)
 
@@ -116,6 +122,7 @@ def train(trainingwrapper, dataset):
             dis_loss.backward()
 
             ## compute gradient penalty
+            """
             eps = torch.rand(data_batch_size, 1, 1, 1).to(device)
             eps_c = torch.randint(0, 2, size=(data_batch_size,)).to(device)
 
@@ -137,6 +144,7 @@ def train(trainingwrapper, dataset):
 
             gradient_penalty = lam * ((torch.sum(grads**2, dim=(1,2,3))**.5 - 1)**2).mean(0)
             gradient_penalty.backward()
+            """
 
             d_optim.step()
 
