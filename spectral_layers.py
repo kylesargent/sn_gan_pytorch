@@ -67,3 +67,28 @@ class SNConv2d(nn.Conv2d):
             dilation=self.dilation,
             groups=self.groups
         )
+
+class SNEmbedId(nn.Embedding): 
+
+    def __init__(self, num_classes, num_features, init_u=None):
+        super(SNEmbedId, self).__init__(
+            num_classes, num_features
+        )
+        self.Ip = 1
+        if init_u is not None:
+            self.u = init_u
+        else:
+            self.u = torch.randn(1, num_features).to(device)
+
+    @property
+    def W_bar(self):
+        sigma, u = max_singular_value(self.weight, self.u, self.Ip)
+        self.u = u
+
+        # print(sigma, u)
+
+        return self.weight / sigma
+
+    def forward(self, x):
+        return F.embedding(x, self.W_bar)
+        

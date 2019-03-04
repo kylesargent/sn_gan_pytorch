@@ -8,7 +8,7 @@ from torch.nn.utils import spectral_norm
 from torch.distributions.normal import Normal
 from scipy.stats import truncnorm
 import numpy as np
-from spectral_layers import SNLinear
+from spectral_layers import SNLinear, SNEmbedId
 
 
 def sample_z(batch_size, truncate=False, clip=1.5):
@@ -78,7 +78,7 @@ class Cifar10Discriminator(nn.Module):
         xavier_uniform_(self.dense.weight)
 
         if n_classes > 0:
-            self.class_embedding = spectral_norm(nn.Embedding(n_classes, channels))
+            self.class_embedding = SNEmbedId(n_classes, channels)
             xavier_uniform_(self.class_embedding.weight)
         
     def forward(self, x, y=None):

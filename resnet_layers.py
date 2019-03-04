@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
-from torch.nn.utils import spectral_norm
 from spectral_layers import SNConv2d
 import torch
 
