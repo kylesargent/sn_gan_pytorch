@@ -37,7 +37,7 @@ class Cifar10Generator(nn.Module):
         self.block_1 = GeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
         self.block_2 = GeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
         self.block_3 = GeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
-        self.batchnorm = nn.BatchNorm2d(256)
+        self.batchnorm = nn.BatchNorm2d(256, eps=2e-5)
         self.conv = nn.Conv2d(256, 3, 3, padding=1)
 
         xavier_uniform_(self.linear_1.weight)

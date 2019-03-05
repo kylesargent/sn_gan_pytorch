@@ -41,8 +41,8 @@ class GeneratorBlock(nn.Module):
         self.conv2 = nn.Conv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
 
         if self.n_classes == 0:
-            self.b1 = nn.BatchNorm2d(in_channels)
-            self.b2 = nn.BatchNorm2d(hidden_channels)
+            self.b1 = nn.BatchNorm2d(in_channels, eps=2e-5)
+            self.b2 = nn.BatchNorm2d(hidden_channels, eps=2e-5)
         else:
             self.b1 = ConditionalBatchNorm2d(in_channels, self.n_classes)
             self.b2 = ConditionalBatchNorm2d(hidden_channels, self.n_classes)
