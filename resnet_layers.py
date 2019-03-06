@@ -53,7 +53,6 @@ class GeneratorBlock(nn.Module):
 
         xavier_uniform_(self.conv1.weight, gain=1.41)
         xavier_uniform_(self.conv2.weight, gain=1.41)
-
             
     def forward(self, x, y=None):
         # residual
@@ -79,7 +78,7 @@ class GeneratorBlock(nn.Module):
 
 class DiscriminatorBlock(nn.Module):
     
-    def __init__(self, in_channels, out_channels, hidden_channels=None, kernel_size=3, padding=1, activation=F.relu, downsample=False, optimized=False):
+    def __init__(self, in_channels, out_channels, hidden_channels=None, kernel_size=3, padding=1, activation=F.relu, downsample=False, optimized=False, use_gamma=False):
         super(DiscriminatorBlock, self).__init__()
         
         self.activation = activation
@@ -93,11 +92,11 @@ class DiscriminatorBlock(nn.Module):
             else:
                 hidden_channels = in_channels
         
-        self.conv1 = SNConv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
-        self.conv2 = SNConv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
+        self.conv1 = SNConv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding, use_gamma=use_gamma)
+        self.conv2 = SNConv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding, use_gamma=use_gamma)
         
         if self.learnable_shortcut:
-            self.shortcut = SNConv2d(in_channels, out_channels, kernel_size=1)
+            self.shortcut = SNConv2d(in_channels, out_channels, kernel_size=1, use_gamma=use_gamma)
             xavier_uniform_(self.shortcut.weight)
 
         xavier_uniform_(self.conv1.weight, gain=1.41)

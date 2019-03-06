@@ -37,8 +37,6 @@ def get_inception_score(images, splits=10):
     preds = []
     n_batches = int(math.ceil(float(len(inps)) / float(bs)))
     for i in tqdm(range(n_batches)):
-        # sys.stdout.write(".")
-        # sys.stdout.flush()
         inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
         inp = np.concatenate(inp, 0)
         pred = sess.run(softmax, {'ExpandDims:0': inp})
@@ -54,7 +52,6 @@ def get_inception_score(images, splits=10):
 
 # This function is called automatically.
 def _init_inception():
-  tf.device('/gpu:0'):
   global softmax
   if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)

@@ -16,7 +16,7 @@ def max_singular_value(weight, u, Ip):
 
 class SNLinear(nn.Linear):
     
-    def __init__(self, in_features, out_features, bias=True, init_u = None):
+    def __init__(self, in_features, out_features, bias=True, init_u = None, use_gamma=False):
         super(SNLinear, self).__init__(
             in_features, out_features, bias
         )
@@ -25,7 +25,10 @@ class SNLinear(nn.Linear):
             self.u = init_u
         else:
             self.u = torch.randn(1, out_features).to(device)
-        
+        self.use_gamma = use_gamma
+        if self.use_gamma:
+            self.gamma = nn.Parameter(torch.ones(1))
+
     @property
     def W_bar(self):
         sigma, u = max_singular_value(self.weight, self.u, self.Ip)
@@ -33,11 +36,11 @@ class SNLinear(nn.Linear):
         return self.weight / sigma
 
     def forward(self, x):
-        return F.linear(x, self.W_bar, self.bias)
+        return torch.exp(self.gamma) * F.linear(x, self.W_bar, self.bias)
     
 class SNConv2d(nn.Conv2d):
     
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, init_u=None):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, init_u=None, use_gamma=False):
         super(SNConv2d, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias
         )
@@ -47,6 +50,11 @@ class SNConv2d(nn.Conv2d):
         else:
             self.u = torch.randn(1, out_channels).to(device)
         
+        self.use_gamma = use_gamma
+        if self.use_gamma:
+            self.gamma = nn.Parameter(torch.ones(1))
+
+
     @property
     def W_bar(self):
         w = self.weight
@@ -58,7 +66,7 @@ class SNConv2d(nn.Conv2d):
         return self.weight / sigma
     
     def forward(self, x):
-        return F.conv2d(
+        return torch.exp(self.gamma) * F.conv2d(
             x, 
             self.W_bar,
             bias=self.bias,
@@ -84,9 +92,6 @@ class SNEmbedId(nn.Embedding):
     def W_bar(self):
         sigma, u = max_singular_value(self.weight, self.u, self.Ip)
         self.u = u
-
-        # print(sigma, u)
-
         return self.weight / sigma
 
     def forward(self, x):

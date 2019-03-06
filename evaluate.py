@@ -21,8 +21,8 @@ from tqdm import tqdm
 current_checkpoint = 0
 
 def evaluate(trainingwrapper, dataset):
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     config = trainingwrapper.config
+    device = torch.device('cuda:{}'.format(config['gpu']) if torch.cuda.is_available() else 'cpu')
     sn_gan_data_path = config['sn_gan_data_path']
     results_path = config['results_path']
     conditional = config['conditional']
@@ -95,7 +95,7 @@ def evaluate(trainingwrapper, dataset):
     # evaluation - is
     images = images.transpose(1,2)
     images = images.transpose(2,3) 
-    images = images.numpy() * 255
+    images = images.numpy() * 255.
 
     inception_score_mean, inception_score_variance = get_inception_score(list(images))
     logging.info("Inception Score: {}+/-{}".format(inception_score_mean, inception_score_variance))

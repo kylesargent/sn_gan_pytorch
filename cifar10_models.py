@@ -64,23 +64,36 @@ class Cifar10Generator(nn.Module):
     
 class Cifar10Discriminator(nn.Module):
     
-    def __init__(self, channels=128, n_classes=0):
+    def __init__(self, channels=128, n_classes=0, use_gamma=False):
         super(Cifar10Discriminator, self).__init__()
         
         self.n_classes = n_classes
+        self.use_gamma = use_gamma
 
-        self.block1 = DiscriminatorBlock(3, channels, downsample=True, optimized=True)
-        self.block2 = DiscriminatorBlock(channels, channels, downsample=True)
-        self.block3 = DiscriminatorBlock(channels, channels, downsample=False)
-        self.block4 = DiscriminatorBlock(channels, channels, downsample=False)
+        self.block1 = DiscriminatorBlock(3, channels, downsample=True, optimized=True, use_gamma=use_gamma)
+        self.block2 = DiscriminatorBlock(channels, channels, downsample=True, use_gamma=use_gamma)
+        self.block3 = DiscriminatorBlock(channels, channels, downsample=False, use_gamma=use_gamma)
+        self.block4 = DiscriminatorBlock(channels, channels, downsample=False, use_gamma=use_gamma)
         
-        self.dense = SNLinear(channels, 1, bias=False) 
+        self.dense = SNLinear(channels, 1, bias=False, use_gamma=use_gamma) 
         xavier_uniform_(self.dense.weight)
 
         if n_classes > 0:
             self.class_embedding = SNEmbedId(n_classes, channels)
             xavier_uniform_(self.class_embedding.weight)
         
+    def sum_gammas(self):
+        if not self.use_gamma:
+            raise ValueError('The model is not reparametrized; there are no gammas to sum')
+        else:
+            gammas = 0
+            for block in [self.block1, self.block2, self.block3, self.block4]:
+                gammas += block.conv1.gamma + block.conv2.gamma
+                if block.learnable_shortcut:
+                    gammas += block.shortcut.gamma
+            gammas += self.dense.gamma
+            return gammas
+
     def forward(self, x, y=None):
         if y is not None:
             assert(x.shape[0] == y.shape[0])
