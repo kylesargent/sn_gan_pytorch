@@ -70,7 +70,7 @@ def main():
         if args.pretrained_path is not None:
             args.override_hyperparameters = True
 
-    model_name = args.model_name
+    model_name = args.model_name + '/'
     results_path = os.path.join(args.sn_gan_data_path, model_name)
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
     dataset = get_dataset_struct(args.dataset, args.sn_gan_data_path, args.data_batch_size, 4, args.subsample)

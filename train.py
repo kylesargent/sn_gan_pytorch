@@ -163,7 +163,7 @@ def train(trainingwrapper, dataset):
 
             dis_loss = get_dis_loss(dis_fake, dis_real)
             if config['reparametrize']:
-                dis_loss += lam1 * (d.sum_gammas() - 1)**2
+                dis_loss += lam1 * d.sum_gammas()**2
             if config['use_gp']:
                 eps = torch.rand(data_batch_size, 1, 1, 1).to(device)
                 # eps_c = torch.randint(0, 2, size=(data_batch_size,)).to(device)

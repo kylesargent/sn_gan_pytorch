@@ -33,7 +33,7 @@ class TrainingWrapper(object):
         config = state['config']
 
         # some hacks for backward compat
-        config['n_classes'] = 10
+        config['n_classes'] = 0
         config['eval_batch_size'] = 512
 
         d = Cifar10Discriminator(n_classes=config['n_classes'])

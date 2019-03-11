@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 def max_singular_value(weight, u, Ip):
     assert(Ip >= 1)
@@ -25,9 +25,8 @@ class SNLinear(nn.Linear):
             self.u = init_u
         else:
             self.u = torch.randn(1, out_features).to(device)
-        self.use_gamma = use_gamma
-        if self.use_gamma:
-            self.gamma = nn.Parameter(torch.ones(1))
+        
+        self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
 
     @property
     def W_bar(self):
@@ -50,9 +49,8 @@ class SNConv2d(nn.Conv2d):
         else:
             self.u = torch.randn(1, out_channels).to(device)
         
-        self.use_gamma = use_gamma
-        if self.use_gamma:
-            self.gamma = nn.Parameter(torch.ones(1))
+        
+        self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
 
 
     @property
