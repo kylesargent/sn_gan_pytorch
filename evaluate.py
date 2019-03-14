@@ -101,7 +101,7 @@ def evaluate(trainingwrapper, dataset):
     logging.info("Inception Score: {}+/-{}".format(inception_score_mean, inception_score_variance))
 
     # evaluation - fid
-    fid = calculate_fid_given_paths((eval_imgs_path, fid_stats_path), sn_gan_data_path)
-    logging.info("FID: {}\n".format(fid))
+    # fid = calculate_fid_given_paths((eval_imgs_path, fid_stats_path), sn_gan_data_path)
+    # logging.info("FID: {}\n".format(fid))
 
     g.train()
