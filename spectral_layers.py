@@ -14,25 +14,22 @@ def max_singular_value(weight, u, Ip):
 
 class SNLinear(nn.Linear):
     
-    def __init__(self, in_features, out_features, bias=True, init_u = None, use_gamma=False):
+    def __init__(self, in_features, out_features, bias=True, init_u=None, use_gamma=False):
         super(SNLinear, self).__init__(
             in_features, out_features, bias
         )
         self.Ip = 1
-        if init_u is not None:
-            self.u = nn.Parameter(init_u, requires_grad=False)
-        else:
-            self.u = nn.Parameter(torch.randn(1, out_features), requires_grad=False)
-        self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
+        self.register_buffer('u', init_u if init_u is not None else torch.randn(1, out_features))
+        self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
     @property
     def W_bar(self):
         sigma, u = max_singular_value(self.weight, self.u, self.Ip)
-        self.u = u
+        self.u[:] = u
         return self.weight / sigma
 
     def forward(self, x):
-        if use_gamma:
+        if self.gamma is not None:
             return torch.exp(self.gamma) * F.linear(x, self.W_bar, self.bias) 
         else:
             return F.linear(x, self.W_bar, self.bias) 
@@ -44,11 +41,8 @@ class SNConv2d(nn.Conv2d):
             in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias
         )
         self.Ip = 1
-        if init_u is not None:
-            self.u = nn.Parameter(init_u, requires_grad=False)
-        else:
-            self.u = nn.Parameter(torch.randn(1, out_channels), requires_grad=False)
-        self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
+        self.register_buffer('u', init_u if init_u is not None else torch.randn(1, out_channels))
+        self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
 
     @property
@@ -58,7 +52,7 @@ class SNConv2d(nn.Conv2d):
         
         sigma, u = max_singular_value(w, self.u, self.Ip)
 
-        self.u = u
+        self.u[:] = u
         return self.weight / sigma
     
     def forward(self, x):
@@ -71,7 +65,7 @@ class SNConv2d(nn.Conv2d):
             dilation=self.dilation,
             groups=self.groups
         )
-        if self.use_gamma:
+        if self.gamma is not None:
             return torch.exp(self.gamma) * r
         else:
             return r
