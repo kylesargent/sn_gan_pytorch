@@ -38,8 +38,7 @@ def main():
     parser.add_argument('--loss_type', type=str, default='hinge', help='type of loss to use for GAN')
     
     # Evaluation Hyperparameters
-    parser.add_argument('--n_fid_imgs', type=int, default=10000, help='number of images to use for FID, should be >= 10000, must be > 2048')
-    parser.add_argument('--n_is_imgs', type=int, default=5000, help='number of images to use for evaluating inception score')
+    parser.add_argument('--n_is_imgs', type=int, default=50000, help='number of images to use for evaluating inception score')
     parser.add_argument('--eval_batch_size', type=int, default=512, help='generate images for evaluation in batches so as not to overload model')
 
     parser.add_argument('--dry_run', action='store_true', help='debug on a small subset of training data, and limit evaluation')

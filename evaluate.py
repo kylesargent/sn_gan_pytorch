@@ -36,7 +36,6 @@ def evaluate(trainingwrapper, dataset):
     g = trainingwrapper.g
 
     n_is_imgs = config['n_is_imgs']
-    n_fid_imgs = config['n_fid_imgs']
     eval_batch_size = config['eval_batch_size']
     truncate = config['truncate']
     logging.info('Computing examples with truncation={}'.format(truncate))
@@ -55,13 +54,12 @@ def evaluate(trainingwrapper, dataset):
     g.to(device)
     g.eval()
             
-    n_imgs = n_fid_imgs
     images = []
 
     if conditional:
         labels = []
         with torch.no_grad():
-            for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
+            for _ in tqdm(range(math.ceil(n_is_imgs / float(eval_batch_size)))):
                 z = sample_z(eval_batch_size, truncate=truncate).to(device)
                 c = sample_c(eval_batch_size, n_classes)
                 images += [g(z, c).cpu()]
@@ -80,7 +78,7 @@ def evaluate(trainingwrapper, dataset):
             class_counts[label] += 1
     else:
         with torch.no_grad():
-            for _ in tqdm(range(math.ceil(n_fid_imgs / float(eval_batch_size)))):
+            for _ in tqdm(range(math.ceil(n_is_imgs / float(eval_batch_size)))):
                 z = sample_z(eval_batch_size, truncate=truncate).to(device)
                 images += [g(z).cpu()]
 
@@ -97,7 +95,13 @@ def evaluate(trainingwrapper, dataset):
     images = images.transpose(2,3) 
     images = images.numpy() * 255.
 
+    torch.cuda.empty_cache()
+    print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+    print('Cached:', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB')
+
     inception_score_mean, inception_score_variance = get_inception_score(list(images))
+
+    print(inception_score_mean, inception_score_variance)
     logging.info("Inception Score: {}+/-{}".format(inception_score_mean, inception_score_variance))
 
     # evaluation - fid
