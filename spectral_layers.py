@@ -25,7 +25,6 @@ class SNLinear(nn.Linear):
             self.u = init_u
         else:
             self.u = torch.randn(1, out_features).to(device)
-        
         self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
 
     @property
@@ -35,7 +34,10 @@ class SNLinear(nn.Linear):
         return self.weight / sigma
 
     def forward(self, x):
-        return torch.exp(self.gamma) * F.linear(x, self.W_bar, self.bias)
+        if use_gamma:
+            return torch.exp(self.gamma) * F.linear(x, self.W_bar, self.bias) 
+        else:
+            return F.linear(x, self.W_bar, self.bias) 
     
 class SNConv2d(nn.Conv2d):
     
@@ -48,8 +50,6 @@ class SNConv2d(nn.Conv2d):
             self.u = init_u
         else:
             self.u = torch.randn(1, out_channels).to(device)
-        
-        
         self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
 
 
@@ -64,7 +64,7 @@ class SNConv2d(nn.Conv2d):
         return self.weight / sigma
     
     def forward(self, x):
-        return torch.exp(self.gamma) * F.conv2d(
+        r = F.conv2d(
             x, 
             self.W_bar,
             bias=self.bias,
@@ -73,6 +73,10 @@ class SNConv2d(nn.Conv2d):
             dilation=self.dilation,
             groups=self.groups
         )
+        if self.use_gamma:
+            return torch.exp(self.gamma) * r
+        else:
+            return r
 
 class SNEmbedId(nn.Embedding): 
 
