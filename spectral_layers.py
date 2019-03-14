@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
-
 def max_singular_value(weight, u, Ip):
     assert(Ip >= 1)
     
@@ -22,9 +20,9 @@ class SNLinear(nn.Linear):
         )
         self.Ip = 1
         if init_u is not None:
-            self.u = init_u
+            self.u = nn.Parameter(init_u, requires_grad=False)
         else:
-            self.u = torch.randn(1, out_features).to(device)
+            self.u = nn.Parameter(torch.randn(1, out_features), requires_grad=False)
         self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
 
     @property
@@ -47,9 +45,9 @@ class SNConv2d(nn.Conv2d):
         )
         self.Ip = 1
         if init_u is not None:
-            self.u = init_u
+            self.u = nn.Parameter(init_u, requires_grad=False)
         else:
-            self.u = torch.randn(1, out_channels).to(device)
+            self.u = nn.Parameter(torch.randn(1, out_channels), requires_grad=False)
         self.gamma = nn.Parameter(torch.zeros(1), requires_grad=use_gamma)
 
 
