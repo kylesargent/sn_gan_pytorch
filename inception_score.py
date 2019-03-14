@@ -16,7 +16,7 @@ import math
 import sys
 from tqdm import tqdm
 
-MODEL_DIR = '/tmp/imagenet'
+MODEL_DIR = os.path.expanduser('~/sn_gan_pytorch_data')
 DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
 softmax = None
 
