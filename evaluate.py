@@ -95,9 +95,10 @@ def evaluate(trainingwrapper, dataset):
     images = images.transpose(2,3) 
     images = images.numpy() * 255.
 
-    torch.cuda.empty_cache()
-    print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-    print('Cached:', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB')
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+        print('Cached:', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB')
 
     inception_score_mean, inception_score_variance = get_inception_score(list(images))
 

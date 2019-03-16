@@ -56,7 +56,6 @@ def main():
     if args.pretrained_path is None and args.override_hyperparameters:
         parser.error('--override_hyperparameters can only be set when loading a previous model with --pretrained-path')
     if args.dry_run:
-        args.n_fid_imgs = 100
         args.n_is_imgs = 10
 
         args.subsample = .001
@@ -65,13 +64,27 @@ def main():
 
         args.data_batch_size = 4
         args.noise_batch_size = 2
-        args.eval_batch_size = args.n_fid_imgs
+        args.eval_batch_size = args.n_is_imgs
         if args.pretrained_path is not None:
             args.override_hyperparameters = True
 
     model_name = args.model_name + '/'
     results_path = os.path.join(args.sn_gan_data_path, model_name)
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
+    global logging
+    logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
+    logging.info("Building models")
+
+    num_gpus = torch.cuda.device_count()
+    if num_gpus > 1:
+        print("Multiple GPUs detected")
+        logging.info("Multiple GPUs detected")
+        args.max_iters //= num_gpus
+        args.noise_batch_size *= num_gpus
+        args.data_batch_size *= num_gpus
+
+        args.eval_batch_size *= num_gpus
+
     dataset = get_dataset_struct(args.dataset, args.sn_gan_data_path, args.data_batch_size, 4, args.subsample)
 
     config = {
@@ -79,10 +92,6 @@ def main():
         'n_classes': dataset['n_classes'],
         **vars(args)
     }
-
-    global logging
-    logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
-    logging.info("Building models")
 
     if args.pretrained_path is None:
         d = Cifar10Discriminator(n_classes=10 if args.conditional else 0, use_gamma=args.reparametrize)
