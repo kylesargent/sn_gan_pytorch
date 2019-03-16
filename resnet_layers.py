@@ -76,6 +76,57 @@ class GeneratorBlock(nn.Module):
             
         return r + x_sc
 
+class SNGeneratorBlock(nn.Module):
+    
+    def __init__(self, in_channels, out_channels, hidden_channels=None, kernel_size=3, padding=1, activation=F.relu, upsample=False, n_classes=0):
+        super(SNGeneratorBlock, self).__init__()
+        
+        self.activation = activation
+        self.upsample = upsample
+        self.n_classes = n_classes
+            
+        self.learnable_shortcut = in_channels != out_channels or upsample
+        hidden_channels = out_channels if hidden_channels is None else hidden_channels
+        
+        self.conv1 = SNConv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
+        self.conv2 = SNConv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
+
+        if self.n_classes == 0:
+            self.b1 = nn.BatchNorm2d(in_channels, eps=2e-5)
+            self.b2 = nn.BatchNorm2d(hidden_channels, eps=2e-5)
+        else:
+            self.b1 = ConditionalBatchNorm2d(in_channels, self.n_classes)
+            self.b2 = ConditionalBatchNorm2d(hidden_channels, self.n_classes)
+        
+        if self.learnable_shortcut:
+            self.shortcut = SNConv2d(in_channels, out_channels, kernel_size=1)
+            xavier_uniform_(self.shortcut.weight)
+
+        xavier_uniform_(self.conv1.weight, gain=1.41)
+        xavier_uniform_(self.conv2.weight, gain=1.41)
+            
+    def forward(self, x, y=None):
+        # residual
+        assert((y is None and self.n_classes == 0) or (y is not None and self.n_classes > 0))
+
+        r = self.b1(x) if y is None else self.b1(x, y)
+        r = self.activation(r)
+        if self.upsample:
+            r = F.interpolate(r, scale_factor=2)
+        r = self.conv1(r)
+        r = self.b2(r) if y is None else self.b2(r, y)
+        r = self.activation(r)
+        r = self.conv2(r)
+        
+        # shortcut
+        x_sc = x
+        if self.learnable_shortcut:
+            if self.upsample:
+                x_sc = F.interpolate(x_sc, scale_factor=2)
+            x_sc = self.shortcut(x_sc)
+            
+        return r + x_sc
+
 class DiscriminatorBlock(nn.Module):
     
     def __init__(self, in_channels, out_channels, hidden_channels=None, kernel_size=3, padding=1, activation=F.relu, downsample=False, optimized=False, use_gamma=False):

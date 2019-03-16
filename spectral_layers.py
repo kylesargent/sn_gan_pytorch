@@ -28,6 +28,10 @@ class SNLinear(nn.Linear):
         self.u[:] = u
         return self.weight / sigma
 
+    def custom_rank_loss(self):
+        sigma, _ = max_singular_value(self.weight, self.u, self.Ip)
+        return -torch.norm(self.weight) / (sigma**2 * self.weight.shape[0]**.5)
+
     def forward(self, x):
         if self.gamma is not None:
             return torch.exp(self.gamma) * F.linear(x, self.W_bar, self.bias) 
@@ -54,6 +58,13 @@ class SNConv2d(nn.Conv2d):
 
         self.u[:] = u
         return self.weight / sigma
+
+    def custom_rank_loss(self):
+        w = self.weight
+        w = w.view(w.shape[0], -1)
+
+        sigma, _ = max_singular_value(w, self.u, self.Ip)
+        return -torch.norm(w) / (sigma**2 * w.shape[0]**.5)
     
     def forward(self, x):
         r = F.conv2d(

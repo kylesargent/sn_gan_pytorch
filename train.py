@@ -61,6 +61,13 @@ def get_gradient_penalty(x_fake, x_real, device):
     gradient_penalty = ((torch.sum(grads**2, dim=(1,2,3))**.5 - 1)**2).mean(0)
     return gradient_penalty
 
+def get_custom_rank_loss(g):
+    loss = 0
+    for child in g.modules():
+        if hasattr(child, 'custom_rank_loss'):
+            loss += child.custom_rank_loss()
+    return loss
+
 def checksum(model):
     return sum(torch.sum(parameter.data) for parameter in model.parameters())
 
@@ -82,6 +89,7 @@ def train(trainingwrapper, dataset):
     conditional = config['conditional']
     lam1 = config['lam1']
     lam2 = config['lam2']
+    lam3 = config['lam3']
 
     if config['loss_type'] == 'hinge':
         get_gen_loss = get_gen_loss_hinge
@@ -138,6 +146,10 @@ def train(trainingwrapper, dataset):
                 dis_fake = d(x_fake, y_fake)
 
                 gen_loss = get_gen_loss(dis_fake)
+
+                if config['sn_generator']:
+                    gen_loss += lam3 * get_custom_rank_loss(g)
+
                 gen_loss.backward()
                 g_optim.step()
 

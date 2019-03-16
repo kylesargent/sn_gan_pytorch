@@ -1,14 +1,14 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from resnet_layers import GeneratorBlock, DiscriminatorBlock
+from resnet_layers import GeneratorBlock, SNGeneratorBlock, DiscriminatorBlock
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import spectral_norm
 
 from torch.distributions.normal import Normal
 from scipy.stats import truncnorm
 import numpy as np
-from spectral_layers import SNLinear, SNEmbedId
+from spectral_layers import SNLinear, SNConv2d, SNEmbedId
 
 
 def sample_z(batch_size, truncate=False, clip=1.5):
@@ -39,6 +39,43 @@ class Cifar10Generator(nn.Module):
         self.block_3 = GeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
         self.batchnorm = nn.BatchNorm2d(256, eps=2e-5)
         self.conv = nn.Conv2d(256, 3, 3, padding=1)
+
+        xavier_uniform_(self.linear_1.weight)
+        xavier_uniform_(self.conv.weight)
+
+        
+    def forward(self, z, y=None):
+        if y is not None:
+            assert(z.shape[0] == y.shape[0])
+        else:
+            assert(self.n_classes == 0)
+
+        x = self.linear_1(z)
+        x = x.view(x.shape[0], -1, self.bottom_width, self.bottom_width)
+        
+        x = self.block_1(x, y)
+        x = self.block_2(x, y)
+        x = self.block_3(x, y)
+        x = self.batchnorm(x)
+        x = F.relu(x)
+        x = self.conv(x)
+        x = torch.tanh(x)
+        return x
+
+class SNCifar10Generator(nn.Module):
+    
+    def __init__(self, z_size=128, bottom_width=4, n_classes=0):
+        super(SNCifar10Generator, self).__init__()
+        
+        self.bottom_width = bottom_width
+        self.n_classes = n_classes
+        
+        self.linear_1 = SNLinear(z_size, (bottom_width ** 2) * 256)
+        self.block_1 = SNGeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
+        self.block_2 = SNGeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
+        self.block_3 = SNGeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
+        self.batchnorm = nn.BatchNorm2d(256, eps=2e-5)
+        self.conv = SNConv2d(256, 3, 3, padding=1)
 
         xavier_uniform_(self.linear_1.weight)
         xavier_uniform_(self.conv.weight)

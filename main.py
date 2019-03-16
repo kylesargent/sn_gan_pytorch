@@ -4,7 +4,7 @@ from os.path import expanduser
 import logging
 from time import gmtime, strftime
 
-from cifar10_models import Cifar10Generator, Cifar10Discriminator
+from cifar10_models import Cifar10Generator, SNCifar10Generator, Cifar10Discriminator
 from trainingwrapper import TrainingWrapper
 from train import train
 from evaluate import evaluate
@@ -51,6 +51,9 @@ def main():
     parser.add_argument('--use_gp', action='store_true', help='whether to add a gradient penalty')
     parser.add_argument('--lam2', type=float, default=10., help='gradient penalty scaling hyperparameter')
 
+    parser.add_argument('--sn_generator', action='store_true', help='Whether to use spectral normalization in the generator')
+    parser.add_argument('--lam3', type=float, default=.1, help='rank loss penalty scaling factor')
+
 
     args = parser.parse_args()
     if args.pretrained_path is None and args.override_hyperparameters:
@@ -95,7 +98,11 @@ def main():
 
     if args.pretrained_path is None:
         d = Cifar10Discriminator(n_classes=10 if args.conditional else 0, use_gamma=args.reparametrize)
-        g = Cifar10Generator(n_classes=10 if args.conditional else 0)
+
+        if config['sn_generator']:
+            g = SNCifar10Generator(n_classes=10 if args.conditional else 0)
+        else:
+            g = Cifar10Generator(n_classes=10 if args.conditional else 0)
         d_optim = torch.optim.Adam(d.parameters(), lr=.0002, betas=(0.0, 0.9))
         g_optim = torch.optim.Adam(g.parameters(), lr=.0002, betas=(0.0, 0.9))
 
