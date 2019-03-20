@@ -8,7 +8,7 @@ from torch.nn.utils import spectral_norm
 from torch.distributions.normal import Normal
 from scipy.stats import truncnorm
 import numpy as np
-from spectral_layers import SNLinear, SNConv2d, SNEmbedId
+from spectral_layers import SNLinear, SNConv2d, SNEmbedId, SNLinear_Generator, SNConv2d_Generator
 
 
 def sample_z(batch_size, truncate=False, clip=1.5):

@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
-from spectral_layers import SNConv2d
+from spectral_layers import SNConv2d, SNConv2d_Generator
 import torch
 
 class ConditionalBatchNorm2d(nn.Module):
