@@ -42,7 +42,7 @@ class SNLinear(nn.Linear):
 class SNLinear_Generator(nn.Linear):
     
     def __init__(self, in_features, out_features, bias=True, init_u=None, use_gamma=False):
-        super(SNLinear_Custom, self).__init__(
+        super(SNLinear_Generator, self).__init__(
             in_features, out_features, bias
         )
         self.Ip = 1
@@ -111,7 +111,7 @@ class SNConv2d(nn.Conv2d):
 class SNConv2d_Generator(nn.Conv2d):
     
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, init_u=None, use_gamma=False):
-        super(SNConv2d, self).__init__(
+        super(SNConv2d_Generator, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias
         )
         self.Ip = 1
