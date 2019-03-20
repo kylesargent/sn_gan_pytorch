@@ -88,8 +88,8 @@ class SNGeneratorBlock(nn.Module):
         self.learnable_shortcut = in_channels != out_channels or upsample
         hidden_channels = out_channels if hidden_channels is None else hidden_channels
         
-        self.conv1 = SNConv2d(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
-        self.conv2 = SNConv2d(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
+        self.conv1 = SNConv2d_Generator(in_channels, hidden_channels, kernel_size=kernel_size, padding=padding)
+        self.conv2 = SNConv2d_Generator(hidden_channels, out_channels, kernel_size=kernel_size, padding=padding)
 
         if self.n_classes == 0:
             self.b1 = nn.BatchNorm2d(in_channels, eps=2e-5)
@@ -99,7 +99,7 @@ class SNGeneratorBlock(nn.Module):
             self.b2 = ConditionalBatchNorm2d(hidden_channels, self.n_classes)
         
         if self.learnable_shortcut:
-            self.shortcut = SNConv2d(in_channels, out_channels, kernel_size=1)
+            self.shortcut = SNConv2d_Generator(in_channels, out_channels, kernel_size=1)
             xavier_uniform_(self.shortcut.weight)
 
         xavier_uniform_(self.conv1.weight, gain=1.41)
