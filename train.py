@@ -124,7 +124,8 @@ def train(trainingwrapper, dataset):
     logging.info("Starting training\n")
     print("Training")
 
-    gen_losses = dis_losses = []
+    gen_losses = []
+    dis_losses = []
 
     for iters in tqdm(range(max_iters)):
         d_scheduler.step()
@@ -210,4 +211,5 @@ def train(trainingwrapper, dataset):
         if (iters + 1) % 100 == 0:
             logging.info("Mean generator loss: {}".format(np.mean(gen_losses)))
             logging.info("Mean discriminator loss: {}".format(np.mean(dis_losses)))
-            gen_losses = dis_losses = []
+            gen_losses = []
+            dis_losses = []
