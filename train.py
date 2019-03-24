@@ -68,6 +68,11 @@ def get_custom_rank_loss(g):
             loss += child.custom_rank_loss()
     return loss
 
+def spectrally_clip_grads(g):
+    for child in g.modules():
+        if hasattr(child, 'clamp_gradient_spectra'):
+            child.clamp_gradient_spectra()
+
 def checksum(model):
     return sum(torch.sum(parameter.data) for parameter in model.parameters())
 
@@ -148,10 +153,10 @@ def train(trainingwrapper, dataset):
 
                 gen_loss = get_gen_loss(dis_fake)
 
-                if config['sn_generator']:
-                    gen_loss += lam3 * get_custom_rank_loss(g)
-
                 gen_loss.backward()
+                if config['sn_generator']:
+                    spectrally_clip_grads(g)
+
                 g_optim.step()
 
                 for p in d.parameters():
