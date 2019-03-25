@@ -47,7 +47,7 @@ class SNLinear(nn.Linear):
 
 class Linear_SpectralGradientClip(nn.Linear):
     
-    def __init__(self, in_features, out_features, bias=True, init_u=None, use_gamma=False, r=1.2, Ip=4):
+    def __init__(self, in_features, out_features, bias=True, init_u=None, use_gamma=False, r=1.05, Ip=16):
         super(Linear_SpectralGradientClip, self).__init__(
             in_features, out_features, bias
         )
@@ -110,7 +110,7 @@ class SNConv2d(nn.Conv2d):
 
 class Conv2d_SpectralGradientClip(nn.Conv2d):
     
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, init_u=None, use_gamma=False, r=1.2, Ip=4):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, init_u=None, use_gamma=False, r=1.05, Ip=16):
         super(Conv2d_SpectralGradientClip, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias
         )
@@ -125,12 +125,14 @@ class Conv2d_SpectralGradientClip(nn.Conv2d):
         w = w.view(w.shape[0], -1)
 
         sigma0, u0, v0 = extended_singular_value(w, self.u0, self.Ip)
-        delta0 = sigma0 * torch.matmul(u0.transpose(0,1), v0)
+        delta = torch.matmul(u0.transpose(0,1), v0)
+
+        delta0 = sigma0 * delta
         sigma1, u1, v1 = extended_singular_value(w - delta0, self.u1, self.Ip)
 
         sigma_clamp = self.r * sigma1
         sigma0_scale = max(0, sigma0 - sigma_clamp)
-        delta1 = sigma0_scale * torch.matmul(u0.transpose(0,1), v0)
+        delta1 = sigma0_scale * delta
 
         self.u0[:] = u0
         self.u1[:] = u1
