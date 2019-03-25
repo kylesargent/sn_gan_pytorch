@@ -33,7 +33,7 @@ class SNLinear(nn.Linear):
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
         self.Ip_grad = 8
-        self.r = 1.5
+        self.r = 10
         self.register_buffer('u0', init_u if init_u is not None else torch.randn(1, out_features))
         self.register_buffer('u1', init_u if init_u is not None else torch.randn(1, out_features))
 
@@ -50,9 +50,6 @@ class SNLinear(nn.Linear):
 
             delta0 = sigma0 * delta
             sigma1, u1, v1 = extended_singular_value(self.weight.grad - delta0, self.u1, self.Ip_grad)
-
-            wn = self.weight.grad.data.numpy()
-            u, s, h = np.linalg.svd(wn)
 
             sigma_clamp = self.r * sigma1
             sigma0_scale = max(0, sigma0 - sigma_clamp)
@@ -81,7 +78,7 @@ class SNConv2d(nn.Conv2d):
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
         self.Ip_grad = 8
-        self.r = 1.5
+        self.r = 10
         self.register_buffer('u0', init_u if init_u is not None else torch.randn(1, out_channels))
         self.register_buffer('u1', init_u if init_u is not None else torch.randn(1, out_channels))
 
