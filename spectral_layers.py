@@ -32,8 +32,8 @@ class SNLinear(nn.Linear):
         self.register_buffer('u', init_u if init_u is not None else torch.randn(1, out_features))
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
-        self.Ip_grad = 16
-        self.r = 1.2
+        self.Ip_grad = 8
+        self.r = 1.5
         self.register_buffer('u0', init_u if init_u is not None else torch.randn(1, out_features))
         self.register_buffer('u1', init_u if init_u is not None else torch.randn(1, out_features))
 
@@ -44,11 +44,11 @@ class SNLinear(nn.Linear):
         return self.weight / sigma
 
     def clamp_gradient_spectra(self):  
-        sigma0, u0, v0 = extended_singular_value(self.weight, self.u0, self.Ip_grad)
+        sigma0, u0, v0 = extended_singular_value(self.weight.grad, self.u0, self.Ip_grad)
         delta = torch.matmul(u0.transpose(0,1), v0)
 
         delta0 = sigma0 * delta
-        sigma1, u1, v1 = extended_singular_value(self.weight - delta0, self.u1, self.Ip_grad)
+        sigma1, u1, v1 = extended_singular_value(self.weight.grad - delta0, self.u1, self.Ip_grad)
 
         sigma_clamp = self.r * sigma1
         sigma0_scale = max(0, sigma0 - sigma_clamp)
@@ -76,11 +76,10 @@ class SNConv2d(nn.Conv2d):
         self.register_buffer('u', init_u if init_u is not None else torch.randn(1, out_channels))
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
-        self.Ip_grad = 16
-        self.r = 1.2
+        self.Ip_grad = 8
+        self.r = 1.5
         self.register_buffer('u0', init_u if init_u is not None else torch.randn(1, out_channels))
         self.register_buffer('u1', init_u if init_u is not None else torch.randn(1, out_channels))
-
 
     @property
     def W_bar(self):
@@ -92,7 +91,7 @@ class SNConv2d(nn.Conv2d):
         return self.weight / sigma
     
     def clamp_gradient_spectra(self):  
-        w = self.weight
+        w = self.weight.grad
         w = w.view(w.shape[0], -1)
 
         sigma0, u0, v0 = extended_singular_value(w, self.u0, self.Ip_grad)
