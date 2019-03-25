@@ -8,7 +8,7 @@ from torch.nn.utils import spectral_norm
 from torch.distributions.normal import Normal
 from scipy.stats import truncnorm
 import numpy as np
-from spectral_layers import SNLinear, SNConv2d, SNEmbedId, Linear_SpectralGradientClip, Conv2d_SpectralGradientClip
+from spectral_layers import SNLinear, SNConv2d, SNEmbedId
 
 
 def sample_z(batch_size, truncate=False, clip=1.5):
@@ -70,12 +70,12 @@ class SNCifar10Generator(nn.Module):
         self.bottom_width = bottom_width
         self.n_classes = n_classes
         
-        self.linear_1 = Linear_SpectralGradientClip(z_size, (bottom_width ** 2) * 256)
+        self.linear_1 = SNLinear(z_size, (bottom_width ** 2) * 256)
         self.block_1 = SNGeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
         self.block_2 = SNGeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
         self.block_3 = SNGeneratorBlock(256, 256, upsample=True, n_classes=n_classes)
         self.batchnorm = nn.BatchNorm2d(256, eps=2e-5)
-        self.conv = Conv2d_SpectralGradientClip(256, 3, 3, padding=1)
+        self.conv = SNConv2d(256, 3, 3, padding=1)
 
         xavier_uniform_(self.linear_1.weight)
         xavier_uniform_(self.conv.weight)

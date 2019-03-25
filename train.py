@@ -68,8 +68,8 @@ def get_custom_rank_loss(g):
             loss += child.custom_rank_loss()
     return loss
 
-def spectrally_clip_grads(g):
-    for child in g.modules():
+def spectrally_clip_grads(model):
+    for child in model.modules():
         if hasattr(child, 'clamp_gradient_spectra'):
             child.clamp_gradient_spectra()
 
@@ -154,9 +154,6 @@ def train(trainingwrapper, dataset):
                 gen_loss = get_gen_loss(dis_fake)
 
                 gen_loss.backward()
-                if config['sn_generator']:
-                    spectrally_clip_grads(g)
-
                 g_optim.step()
 
                 for p in d.parameters():
@@ -208,6 +205,8 @@ def train(trainingwrapper, dataset):
                 dis_loss += lam2 * gradient_penalty
 
             dis_loss.backward()
+            if config['clip_grads_dis']:
+                spectrally_clip_grads(d)
             d_optim.step()
 
         gen_losses += [gen_loss.cpu().data.numpy()]

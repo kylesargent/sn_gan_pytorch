@@ -54,6 +54,8 @@ def main():
     parser.add_argument('--sn_generator', action='store_true', help='Whether to use spectral normalization in the generator')
     parser.add_argument('--lam3', type=float, default=.1, help='rank loss penalty scaling factor')
 
+    parser.add_argument('--clip_grads_dis', action='store_true', help='spectrally clip grads in discriminator')
+
 
     args = parser.parse_args()
     if args.pretrained_path is None and args.override_hyperparameters:
