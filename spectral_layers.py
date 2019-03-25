@@ -50,6 +50,14 @@ class SNLinear(nn.Linear):
         delta0 = sigma0 * delta
         sigma1, u1, v1 = extended_singular_value(self.weight.grad - delta0, self.u1, self.Ip_grad)
 
+        print(sigma0)
+        print(sigma1)
+        print(sigma0 / sigma1)
+
+        wn = self.weight.grad.data.numpy()
+        u, s, h = np.linalg.svd(wn)
+        print(s)
+
         sigma_clamp = self.r * sigma1
         sigma0_scale = max(0, sigma0 - sigma_clamp)
         delta1 = sigma0_scale * delta
