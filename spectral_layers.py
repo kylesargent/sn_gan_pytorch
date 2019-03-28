@@ -136,8 +136,6 @@ class SNConv2dToeplitz(nn.Conv2d):
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
         self.has_u = False
 
-        self.register_buffer('u_r', torch.randn(1, out_channels))
-
     def max_singular_value_toeplitz(self, u, Ip=1):
         transpose_weight = flip(flip(self.weight.transpose(0,1), 2), 3)
 
@@ -157,16 +155,9 @@ class SNConv2dToeplitz(nn.Conv2d):
 
     @property
     def W_bar(self):
-        w = self.weight
-        w = w.view(w.shape[0], -1)
-
-        sigma_r, u_r, _ = max_singular_value(w, self.u_r, self.Ip)
         sigma, u = self.max_singular_value_toeplitz(self.u, self.Ip)
-
         self.u[:] = u
-        self.u_r[:] = u_r
-
-        return self.weight / sigma_r
+        return self.weight / sigma
 
     def sigma(self):
         sigma, u = self.max_singular_value_toeplitz(self.u, self.Ip)
@@ -178,7 +169,7 @@ class SNConv2dToeplitz(nn.Conv2d):
             self.register_buffer('u', torch.randn_like(super().forward(x)))
             self.has_u = True
 
-        return F.conv2d(
+        return 4 * F.conv2d(
             x, 
             self.W_bar,
             bias=self.bias,
