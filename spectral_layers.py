@@ -85,6 +85,12 @@ class SNConv2d(nn.Conv2d):
         sigma, u, _ = max_singular_value(w, self.u, self.Ip)
         self.u[:] = u
         return self.weight / sigma
+
+    def sigma(self):
+        w = self.weight
+        w = w.view(w.shape[0], -1)
+        sigma, _, _ = max_singular_value(w, self.u, self.Ip)
+        return sigma
     
     def clamp_gradient_spectra(self):
         if self.weight.shape[0] > 1:  
@@ -126,14 +132,17 @@ class SNConv2dToeplitz(nn.Conv2d):
         super(SNConv2dToeplitz, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias
         )
-        self.Ip = 5
+        self.Ip = 1
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
         self.has_u = False
+
+        self.register_buffer('u_r', torch.randn(1, out_channels))
 
     def max_singular_value_toeplitz(self, u, Ip=1):
         transpose_weight = flip(flip(self.weight.transpose(0,1), 2), 3)
 
-        W = lambda input: F.conv2d(input, self.weight, bias=None, stride=1, padding=self.padding)
+        # no bias necessary for SN computation, and we already padded in the first pass for computing u
+        W = lambda input: F.conv2d(input, self.weight, bias=None, stride=1, padding=0)
         Wt = lambda input: F.conv2d(input, transpose_weight, bias=None, stride=1, padding=self.kernel_size[0] - 1)
 
         with torch.no_grad():
@@ -146,10 +155,23 @@ class SNConv2dToeplitz(nn.Conv2d):
         sigma = torch.dot(_u.view(-1), W(_v).view(-1))
         return sigma, _u
 
+    @property
     def W_bar(self):
+        w = self.weight
+        w = w.view(w.shape[0], -1)
+
+        sigma_r, u_r, _ = max_singular_value(w, self.u_r, self.Ip)
+        sigma, u = self.max_singular_value_toeplitz(self.u, self.Ip)
+
+        self.u[:] = u
+        self.u_r[:] = u_r
+
+        return self.weight / sigma_r
+
+    def sigma(self):
         sigma, u = self.max_singular_value_toeplitz(self.u, self.Ip)
         self.u[:] = u
-        return self.weight / sigma
+        return sigma
 
     def forward(self, x):
         if not self.has_u:
@@ -158,7 +180,7 @@ class SNConv2dToeplitz(nn.Conv2d):
 
         return F.conv2d(
             x, 
-            self.W_bar(),
+            self.W_bar,
             bias=self.bias,
             stride=self.stride, 
             padding=self.padding, 

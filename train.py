@@ -212,8 +212,10 @@ def train(trainingwrapper, dataset):
         gen_losses += [gen_loss.cpu().data.numpy()]
         dis_losses += [dis_loss.cpu().data.numpy()]
 
-        if (iters + 1) % 100 == 0:
+        if (iters + 1) % 5000 == 0:
             logging.info("Mean generator loss: {}".format(np.mean(gen_losses)))
             logging.info("Mean discriminator loss: {}".format(np.mean(dis_losses)))
             gen_losses = []
             dis_losses = []
+
+            evaluate(trainingwrapper, dataset)

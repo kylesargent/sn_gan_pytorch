@@ -123,7 +123,7 @@ def main():
     logging.info("Built models and training wrapper")
 
     train(trainingwrapper, dataset)
-    evaluate(trainingwrapper, dataset)
+    # evaluate(trainingwrapper, dataset)
 
         
 if __name__ == '__main__':
