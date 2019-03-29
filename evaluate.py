@@ -100,7 +100,11 @@ def evaluate(trainingwrapper, dataset):
         print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
         print('Cached:', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB')
 
+    g.to('cpu')
+    d.to('cpu')
     inception_score_mean, inception_score_variance = get_inception_score(list(images))
+    g.to(device)
+    d.to(device)
 
     print(inception_score_mean, inception_score_variance)
     logging.info("Inception Score: {}+/-{}".format(inception_score_mean, inception_score_variance))
