@@ -132,6 +132,8 @@ def train(trainingwrapper, dataset):
     gen_losses = []
     dis_losses = []
 
+    print(max_iters)
+
     for iters in tqdm(range(max_iters)):
         d_scheduler.step()
         g_scheduler.step()
@@ -218,4 +220,4 @@ def train(trainingwrapper, dataset):
             gen_losses = []
             dis_losses = []
 
-            evaluate(trainingwrapper, dataset)
+            # evaluate(trainingwrapper, dataset)
