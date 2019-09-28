@@ -28,7 +28,7 @@ def get_dataset_struct(dataset, sn_gan_data_path, batch_size, num_workers, subsa
 def dunk(dataset_path, batch_size, num_workers, subsample):
     def cifar10_preprocess(tensor):
         transformed_tensor = (2. * tensor - 1.)
-        # transformed_tensor += torch.rand(*transformed_tensor.shape) / 128.
+        transformed_tensor += torch.rand(*transformed_tensor.shape) / 128.
         return transformed_tensor
 
     transform = transforms.Compose(
