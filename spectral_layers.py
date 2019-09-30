@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+
 
 def max_singular_value(weight, u, Ip):
     assert(Ip >= 1)
@@ -38,11 +40,6 @@ class SNLinear(nn.Linear):
         self.u[:] = u
         return self.weight / sigma
 
-    def clamp_gradient_spectra(self):
-        if self.weight.shape[0] > 1:  
-            u, s, v = np.linalg.svd(self.weight.grad)
-            print(s[0] / s[1])
-
     def forward(self, x):
         if self.gamma is not None:
             return torch.exp(self.gamma) * F.linear(x, self.W_bar, self.bias) 
@@ -61,10 +58,10 @@ class SNConv2d(nn.Conv2d):
         self.register_buffer('u', init_u if init_u is not None else torch.randn(1, out_channels))
         self.gamma = nn.Parameter(torch.zeros(1)) if use_gamma else None
 
-        self.Ip_grad = 8
+        self.Ip_grad = 3
         self.r = 10
-        self.register_buffer('u0', init_u if init_u is not None else torch.randn(1, out_channels))
-        self.register_buffer('u1', init_u if init_u is not None else torch.randn(1, out_channels))
+        self.register_buffer('u_grad', init_u if init_u is not None else torch.randn(1, out_channels))
+        self.register_buffer('v_grad', init_u if init_u is not None else torch.randn(1, out_channels))
 
     @property
     def W_bar(self):
@@ -82,23 +79,22 @@ class SNConv2d(nn.Conv2d):
         return sigma
     
     def clamp_gradient_spectra(self):
-        if self.weight.shape[0] > 1:  
-            w = self.weight.grad
-            w = w.view(w.shape[0], -1)
+        w = self.weight.grad
+        w = w.view(w.shape[0], -1)
 
-            sigma0, u0, v0 = extended_singular_value(w, self.u0, self.Ip_grad)
-            delta = torch.matmul(u0.transpose(0,1), v0)
+        ### NUMPY APPROX
+        # u, s, v = np.linalg.svd(w.data.cpu().numpy())
+        # grad_approx1 = torch.from_numpy(np.outer(u.T[0], v[0]) * s[0])
 
-            delta0 = sigma0 * delta
-            sigma1, u1, v1 = extended_singular_value(w - delta0, self.u1, self.Ip_grad)
+        ### MAX_SV APPROX
+        sigma, self.u_grad, self.v_grad = max_singular_value(w, self.u_grad, self.Ip_grad)
+        grad_approx = torch.ger(
+            self.u_grad.squeeze(), 
+            self.v_grad.squeeze()
+        ) * sigma
 
-            sigma_clamp = self.r * sigma1
-            sigma0_scale = max(0, sigma0 - sigma_clamp)
-            delta1 = sigma0_scale * delta
+        self.weight.grad[:] = grad_approx.view(*self.weight.grad.shape)
 
-            self.u0[:] = u0
-            self.u1[:] = u1
-            self.weight.grad -= delta1.view(*self.weight.grad.shape)
 
     def forward(self, x):
         r = F.conv2d(

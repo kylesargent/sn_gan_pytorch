@@ -209,8 +209,9 @@ def train(trainingwrapper, dataset):
                 dis_loss += lam2 * gradient_penalty
 
             dis_loss.backward()
-            if config['clip_grads_dis']:
+            if i % 2 == 0:
                 spectrally_clip_grads(d)
+
             d_optim.step()
 
         gen_losses += [gen_loss.cpu().data.numpy()]
@@ -219,14 +220,14 @@ def train(trainingwrapper, dataset):
         d_scheduler.step()
         g_scheduler.step()
         
-        if (iters + 0) % 5000 == 0:
+        if (iters + 1) % 5000 == 0:
             logging.info("Mean generator loss: {}".format(np.mean(gen_losses)))
             logging.info("Mean discriminator loss: {}".format(np.mean(dis_losses)))
             gen_losses = []
             dis_losses = []
 
-            images = generate_images(gen, config['n_is_imgs'], config['eval_batch_size'])
-            mean, std = calc_inception_chainer(images)
+            images = generate_images(g, config['n_is_imgs'], config['eval_batch_size'])
+            mean, std = calc_inception_chainer(images, splits=1)
             logging.info("Inception Score: {}+/-{}".format(mean, std))
             print("Inception Score: {}+/-{}".format(mean, std))
 

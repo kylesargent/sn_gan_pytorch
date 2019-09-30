@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--pretrained_path', type=str, default=None, help='resume training of an earlier model if applicable')
     parser.add_argument('--override_hyperparameters', type=bool, default=False, help='train the states of an old model with new hyperparameters')
     parser.add_argument('--model_name', type=str, default=strftime("%a%d%b%Y__%H_%M_%S/", gmtime()), help='name of the model')
+    parser.add_argument('--dirty', action='store_true', help='allow running without commit hash')
 
     # Architecture Parameters
     parser.add_argument('--conditional', type=bool, default=False, help='Train a conditional GAN')
@@ -34,14 +35,14 @@ def main():
     # Training Hyperparameters
     parser.add_argument('--data_batch_size', type=int, default=64, help='batch size of samples from real data')
     parser.add_argument('--noise_batch_size', type=int, default=128, help='batch size of samples of random noise')
-    parser.add_argument('--dis_iters', type=int, default=5, help='number of times to train discriminator per generator batch')
+    parser.add_argument('--dis_iters', type=int, default=8, help='number of times to train discriminator per generator batch')
     parser.add_argument('--max_iters', type=int, default=50000, help='number of training iterations')
     parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
     parser.add_argument('--loss_type', type=str, default='hinge', help='type of loss to use for GAN')
     
     # Evaluation Hyperparameters
-    parser.add_argument('--n_is_imgs', type=int, default=50000, help='number of images to use for evaluating inception score')
-    parser.add_argument('--eval_batch_size', type=int, default=512, help='generate images for evaluation in batches so as not to overload model')
+    parser.add_argument('--n_is_imgs', type=int, default=5000, help='number of images to use for evaluating inception score')
+    parser.add_argument('--eval_batch_size', type=int, default=100, help='generate images for evaluation in batches so as not to overload model')
 
     parser.add_argument('--dry_run', action='store_true', help='debug on a small subset of training data, and limit evaluation')
     parser.add_argument('--truncate', action='store_true', help='generate images with truncated noise trick during evaluation')
@@ -62,12 +63,17 @@ def main():
     model_name = args.model_name + '/'
     results_path = os.path.join(args.sn_gan_data_path, model_name)
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
-
+    dataset = get_dataset_struct(args.dataset, args.sn_gan_data_path, args.data_batch_size, 4, args.subsample)
+    config = {
+        'results_path': results_path,
+        'n_classes': dataset['n_classes'],
+        **vars(args)
+    }
     global logging
     logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
 
     repo = git.Repo("/home/kyle/sn_gan_pytorch")
-    if repo.is_dirty():
+    if repo.is_dirty() and not config['dirty']:
         raise ValueError("Cannot run without committing changes; aborting")
     else:
         revision_hash = repo.head.object.hexsha
@@ -101,13 +107,7 @@ def main():
 
         args.eval_batch_size *= num_gpus
 
-    dataset = get_dataset_struct(args.dataset, args.sn_gan_data_path, args.data_batch_size, 4, args.subsample)
 
-    config = {
-        'results_path': results_path,
-        'n_classes': dataset['n_classes'],
-        **vars(args)
-    }
 
     if args.pretrained_path is None:
         d = Cifar10Discriminator(n_classes=10 if args.conditional else 0, use_gamma=args.reparametrize)

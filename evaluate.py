@@ -40,9 +40,10 @@ def generate_images(gen, n_imgs, batch_size, truncate=False):
     # only works if the model is on one device!!
     device = next(gen.parameters()).device
 
+    images = []
     with torch.no_grad():
-        for _ in tqdm(range(math.ceil(n_imgs / float(eval_batch_size)))):
-            z = sample_z(eval_batch_size, truncate=truncate).to(device)
+        for _ in tqdm(range(math.ceil(n_imgs / float(batch_size)))):
+            z = sample_z(batch_size, truncate=truncate).to(device)
             images += [gen(z).cpu()]
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
