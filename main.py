@@ -10,7 +10,6 @@ from time import gmtime, strftime
 from cifar10_models import Cifar10Generator, SNCifar10Generator, Cifar10Discriminator
 from trainingwrapper import TrainingWrapper
 from train import train
-from evaluate import evaluate
 
 import torch.nn as nn
 from datasets import get_dataset_struct
@@ -62,6 +61,7 @@ def main():
     args = parser.parse_args()
     model_name = args.model_name + '/'
     results_path = os.path.join(args.sn_gan_data_path, model_name)
+    os.makedirs(os.path.dirname(results_path), exist_ok=True)
 
     global logging
     logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
@@ -88,8 +88,6 @@ def main():
         args.eval_batch_size = args.n_is_imgs
         if args.pretrained_path is not None:
             args.override_hyperparameters = True
-
-    os.makedirs(os.path.dirname(results_path), exist_ok=True)
     
     logging.info("Building models")
 

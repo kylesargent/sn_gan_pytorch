@@ -42,8 +42,6 @@ class SNLinear(nn.Linear):
         if self.weight.shape[0] > 1:  
             u, s, v = np.linalg.svd(self.weight.grad)
             print(s[0] / s[1])
-            self.weight.grad = 
-
 
     def forward(self, x):
         if self.gamma is not None:

@@ -16,7 +16,6 @@ from cifar10_models import sample_z, sample_c
 import sys
 
 sys.path.insert(0, '/home/kyle/')
-from data_porting import evaluation
 from evaluate import generate_images, calc_inception_chainer, save_checkpoint
 
 
