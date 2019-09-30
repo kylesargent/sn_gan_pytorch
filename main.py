@@ -1,3 +1,6 @@
+import torch
+# torch.backends.cudnn.deterministics = True
+import git
 import argparse
 import os
 from os.path import expanduser
@@ -9,11 +12,11 @@ from trainingwrapper import TrainingWrapper
 from train import train
 from evaluate import evaluate
 
-import torch
 import torch.nn as nn
 from datasets import get_dataset_struct
 
 DEFAULT_SN_GAN_DATA_PATH = os.path.expanduser('~/sn_gan_pytorch_data')
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -56,8 +59,21 @@ def main():
 
     parser.add_argument('--clip_grads_dis', action='store_true', help='spectrally clip grads in discriminator')
 
-
     args = parser.parse_args()
+    model_name = args.model_name + '/'
+    results_path = os.path.join(args.sn_gan_data_path, model_name)
+
+    global logging
+    logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
+
+    repo = git.Repo("/home/kyle/sn_gan_pytorch")
+    if repo.is_dirty():
+        raise ValueError("Cannot run without committing changes; aborting")
+    else:
+        revision_hash = repo.head.object.hexsha
+        logging.info("Revision hash:\n{}".format(revision_hash))
+    
+
     if args.pretrained_path is None and args.override_hyperparameters:
         parser.error('--override_hyperparameters can only be set when loading a previous model with --pretrained-path')
     if args.dry_run:
@@ -73,11 +89,8 @@ def main():
         if args.pretrained_path is not None:
             args.override_hyperparameters = True
 
-    model_name = args.model_name + '/'
-    results_path = os.path.join(args.sn_gan_data_path, model_name)
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
-    global logging
-    logging.basicConfig(filename=os.path.join(results_path, 'training.log'), level=logging.DEBUG)
+    
     logging.info("Building models")
 
     num_gpus = torch.cuda.device_count()
@@ -123,7 +136,6 @@ def main():
     logging.info("Built models and training wrapper")
 
     train(trainingwrapper, dataset)
-    evaluate(trainingwrapper, dataset)
 
         
 if __name__ == '__main__':

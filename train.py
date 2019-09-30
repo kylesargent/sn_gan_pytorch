@@ -13,6 +13,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from cifar10_models import sample_z, sample_c
+import sys
+
+sys.path.insert(0, '/home/kyle/')
+from data_porting import evaluation
+from evaluate import generate_images, calc_inception_chainer, save_checkpoint
+
 
 def get_gen_loss_stdgan(dis_fake):
     return F.softplus(-dis_fake).mean(0)
@@ -214,10 +220,15 @@ def train(trainingwrapper, dataset):
         d_scheduler.step()
         g_scheduler.step()
         
-        if (iters + 1) % 5000 == 0:
+        if (iters + 0) % 5000 == 0:
             logging.info("Mean generator loss: {}".format(np.mean(gen_losses)))
             logging.info("Mean discriminator loss: {}".format(np.mean(dis_losses)))
             gen_losses = []
             dis_losses = []
 
-            # evaluate(trainingwrapper, dataset)
+            images = generate_images(gen, config['n_is_imgs'], config['eval_batch_size'])
+            mean, std = calc_inception_chainer(images)
+            logging.info("Inception Score: {}+/-{}".format(mean, std))
+            print("Inception Score: {}+/-{}".format(mean, std))
+
+            save_checkpoint(trainingwrapper)

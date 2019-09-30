@@ -40,19 +40,10 @@ class SNLinear(nn.Linear):
 
     def clamp_gradient_spectra(self):
         if self.weight.shape[0] > 1:  
-            sigma0, u0, v0 = extended_singular_value(self.weight.grad, self.u0, self.Ip_grad)
-            delta = torch.matmul(u0.transpose(0,1), v0)
+            u, s, v = np.linalg.svd(self.weight.grad)
+            print(s[0] / s[1])
+            self.weight.grad = 
 
-            delta0 = sigma0 * delta
-            sigma1, u1, v1 = extended_singular_value(self.weight.grad - delta0, self.u1, self.Ip_grad)
-
-            sigma_clamp = self.r * sigma1
-            sigma0_scale = max(0, sigma0 - sigma_clamp)
-            delta1 = sigma0_scale * delta
-
-            self.u0[:] = u0
-            self.u1[:] = u1
-            self.weight.grad -= delta1
 
     def forward(self, x):
         if self.gamma is not None:
