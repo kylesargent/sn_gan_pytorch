@@ -209,7 +209,7 @@ def train(trainingwrapper, dataset):
                 dis_loss += lam2 * gradient_penalty
 
             dis_loss.backward()
-            if i % 2 == 0:
+            if i <= 5:
                 spectrally_clip_grads(d)
 
             d_optim.step()

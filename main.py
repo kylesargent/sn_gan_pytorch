@@ -35,7 +35,7 @@ def main():
     # Training Hyperparameters
     parser.add_argument('--data_batch_size', type=int, default=64, help='batch size of samples from real data')
     parser.add_argument('--noise_batch_size', type=int, default=128, help='batch size of samples of random noise')
-    parser.add_argument('--dis_iters', type=int, default=8, help='number of times to train discriminator per generator batch')
+    parser.add_argument('--dis_iters', type=int, default=10, help='number of times to train discriminator per generator batch')
     parser.add_argument('--max_iters', type=int, default=50000, help='number of training iterations')
     parser.add_argument('--subsample', type=float, default=None, help='rate at which to subsample the dataset')
     parser.add_argument('--loss_type', type=str, default='hinge', help='type of loss to use for GAN')
