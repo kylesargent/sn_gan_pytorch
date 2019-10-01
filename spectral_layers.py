@@ -78,13 +78,22 @@ class SNConv2d(nn.Conv2d):
         sigma, _, _ = max_singular_value(w, self.u, self.Ip)
         return sigma
     
+    def get_grad_singular_values(self):
+        w = self.weight.grad
+        w = w.view(w.shape[0], -1)
+
+        ### NUMPY APPROX
+        s = np.linalg.svd(w.data.cpu().numpy(), compute_uv=False)
+        return [str(v) for v in s[:3]]
+
     def clamp_gradient_spectra(self):
         w = self.weight.grad
         w = w.view(w.shape[0], -1)
 
         ### NUMPY APPROX
-        # u, s, v = np.linalg.svd(w.data.cpu().numpy())
-        # grad_approx1 = torch.from_numpy(np.outer(u.T[0], v[0]) * s[0])
+        u, s, v = np.linalg.svd(w.data.cpu().numpy())
+        print(s[0] / s[1])
+        grad_approx1 = torch.from_numpy(np.outer(u.T[0], v[0]) * s[0])
 
         ### MAX_SV APPROX
         sigma, self.u_grad, self.v_grad = max_singular_value(w, self.u_grad, self.Ip_grad)
@@ -92,6 +101,10 @@ class SNConv2d(nn.Conv2d):
             self.u_grad.squeeze(), 
             self.v_grad.squeeze()
         ) * sigma
+
+        print(grad_approx)
+        print(grad_approx1)
+        _ = input()
 
         self.weight.grad[:] = grad_approx.view(*self.weight.grad.shape)
 

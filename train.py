@@ -3,6 +3,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import sys
 from tqdm import tqdm
+import json 
 
 from PIL import Image
 import math
@@ -78,6 +79,28 @@ def spectrally_clip_grads(model):
         if hasattr(child, 'clamp_gradient_spectra'):
             child.clamp_gradient_spectra()
 
+SV_DICT = {
+    'block1.conv1': [],
+    'block1.conv2': [],
+    'block1.shortcut': [],
+    'block2.conv1': [],
+    'block2.conv2': [],
+    'block2.shortcut': [],
+    'block3.conv1': [],
+    'block3.conv2': [],
+    'block4.conv1': [],
+    'block4.conv2': []
+}
+
+def monitor_grad_singular_values(model):
+    for child in model.named_modules():
+        name, module = child
+        if 'conv' in name or 'shortcut' in name:
+            SV_DICT[name].append(
+                module.get_grad_singular_values()
+            )
+
+
 def checksum(model):
     return sum(torch.sum(parameter.data) for parameter in model.parameters())
 
@@ -137,7 +160,7 @@ def train(trainingwrapper, dataset):
     gen_losses = []
     dis_losses = []
 
-    print(max_iters)
+    
 
     for iters in tqdm(range(max_iters)):
         for i in range(dis_iters):
@@ -209,8 +232,11 @@ def train(trainingwrapper, dataset):
                 dis_loss += lam2 * gradient_penalty
 
             dis_loss.backward()
-            if i <= 5:
-                spectrally_clip_grads(d)
+            if (iters) % 50 == 0 and i == 0:
+                monitor_grad_singular_values(d)
+
+                sv_dump_filename = os.path.join(results_path, 'sv_dump.json')
+                json.dump(SV_DICT, open(sv_dump_filename, 'w'))
 
             d_optim.step()
 
