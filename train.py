@@ -243,8 +243,8 @@ def train(trainingwrapper, dataset):
         gen_losses += [gen_loss.cpu().data.numpy()]
         dis_losses += [dis_loss.cpu().data.numpy()]
     
-        d_scheduler.step()
-        g_scheduler.step()
+        # d_scheduler.step()
+        # g_scheduler.step()
         
         if (iters + 1) % 5000 == 0:
             logging.info("Mean generator loss: {}".format(np.mean(gen_losses)))
