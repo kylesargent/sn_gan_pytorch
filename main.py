@@ -1,5 +1,5 @@
 import torch
-# torch.backends.cudnn.deterministics = True
+torch.backends.cudnn.deterministic = True
 import git
 import argparse
 import os
