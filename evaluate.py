@@ -70,8 +70,6 @@ def calc_inception_tf(gen):
     images = images.transpose(2,3) 
     images = images.numpy() * 255.
 
-
-
     g.to('cpu')
     trainingwrapper.d.to('cpu')
     inception_score_mean, inception_score_variance = get_inception_score(list(images))
