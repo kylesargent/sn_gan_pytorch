@@ -97,18 +97,6 @@ def main():
     
     logging.info("Building models")
 
-    num_gpus = torch.cuda.device_count()
-    if num_gpus > 1:
-        print("Multiple GPUs detected")
-        logging.info("Multiple GPUs detected")
-        args.max_iters //= num_gpus
-        args.noise_batch_size *= num_gpus
-        args.data_batch_size *= num_gpus
-
-        args.eval_batch_size *= num_gpus
-
-
-
     if args.pretrained_path is None:
         d = Cifar10Discriminator(n_classes=10 if args.conditional else 0, use_gamma=args.reparametrize)
 

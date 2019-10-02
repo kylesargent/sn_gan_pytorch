@@ -150,17 +150,11 @@ def train(trainingwrapper, dataset):
     d.to(device)
     g.to(device)
 
-    if torch.cuda.device_count() > 1:
-        d = nn.DataParallel(d)
-        g = nn.DataParallel(g)
-
     logging.info("Starting training\n")
     print("Training")
 
     gen_losses = []
     dis_losses = []
-
-    
 
     for iters in tqdm(range(max_iters)):
         for i in range(dis_iters):
@@ -243,17 +237,23 @@ def train(trainingwrapper, dataset):
         gen_losses += [gen_loss.cpu().data.numpy()]
         dis_losses += [dis_loss.cpu().data.numpy()]
     
-        # d_scheduler.step()
-        # g_scheduler.step()
+        d_scheduler.step()
+        g_scheduler.step()
         
-        if (iters + 1) % 5000 == 0:
+        if (iters % 5000) == 0 and iters != 0:
+            n_imgs = config['n_is_imgs']
+            splits = 1
+            if iters == 50000:
+                n_imgs *= 10
+                splits *= 10
+
             logging.info("Mean generator loss: {}".format(np.mean(gen_losses)))
             logging.info("Mean discriminator loss: {}".format(np.mean(dis_losses)))
             gen_losses = []
             dis_losses = []
 
-            images = generate_images(g, config['n_is_imgs'], config['eval_batch_size'])
-            mean, std = calc_inception_chainer(images, splits=1)
+            images = generate_images(g, n_imgs, config['eval_batch_size'])
+            mean, std = calc_inception_chainer(images, splits=splits)
             logging.info("Inception Score: {}+/-{}".format(mean, std))
             print("Inception Score: {}+/-{}".format(mean, std))
 
